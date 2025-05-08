@@ -1,0 +1,34 @@
+Proposal 2: Sports Analytics Platform
+
+Brief description of the operational part of the application
+
+Our Sports Analytics Platform will focus on one major sport—either Premier League (soccer), Indian Premier League (cricket), or Formula 1 racing. 
+The final selection will depend on data quality and availability.
+
+User Interface: 
+Sports enthusiasts can browse historical match/race data, view team and player/driver statistics, and track performance across seasons. 
+Users can create personalized dashboards with their preferred statistics and view interactive visualizations showing performance trends and comparisons.
+
+Admin Interface: 
+Administrators will manage the database by updating results, maintaining team/player information, and refreshing standings. 
+The admin tools will include data validation and error correction functionality.
+
+The operational database will be implemented as a normalized (3NF) MySQL database on the school's remote server with entities specific to the chosen sport. 
+For example, if we select Premier League football, entities would include Teams, Players, Matches, and Seasons.
+Our Python frontend will connect to this database with visualization components built using Matplotlib and Seaborn.
+
+Brief description of the data source
+
+We are evaluating several data sources based on completeness, update frequency, and compatibility:
+
+Premier League (Soccer): Football-Data.co.uk, API-Football, or StatsBomb open data. 
+Indian Premier League (Cricket): Kaggle IPL Dataset, Cricsheet ball-by-ball data, or CricAPI. 
+Formula 1 Racing: Ergast Developer API, Formula 1 Official API, or Kaggle F1 datasets.
+
+Our final selection will be based on which sport offers the highest quality and most complete dataset. 
+Once selected, data will be cleaned and transformed using Python with pandas before loading into our operational database.
+
+For our analytical database, we'll implement a star schema data warehouse optimized for complex queries across multiple dimensions (time, teams, players/venues). 
+This will support generating analytics such as performance trends, statistical analysis of various factors affecting outcomes, and historical rankings.
+
+All data will be hosted on the school's remote server with ETL processes to move data from the operational database to the analytical database using Python.
