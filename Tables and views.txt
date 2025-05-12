@@ -1,0 +1,342 @@
+Staging Table:
+    stg_premier_league_raw
+        Id            INT AUTO_INCREMENT PRIMARY KEY,
+        Div           VARCHAR(10),
+        Date          DATE,
+        Time          TIME,
+        HomeTeam      VARCHAR(100),
+        AwayTeam      VARCHAR(100),
+        FTHG          INT,
+        FTAG          INT,
+        FTR           CHAR(1),
+        HTHG          INT,
+        HTAG          INT,
+        HTR           CHAR(1),
+        Referee       VARCHAR(100),
+        HS            INT,
+        AS            INT,
+        HST           INT,
+        AST           INT,
+        HF            INT,
+        AF            INT,
+        HC            INT,
+        AC            INT,
+        HY            INT,
+        AY            INT,
+        HR            INT,
+        AR            INT,
+        B365H         FLOAT,
+        B365D         FLOAT,
+        B365A         FLOAT,
+        BWH           FLOAT,
+        BWD           FLOAT,
+        BWA           FLOAT,
+        IWH           FLOAT,
+        IWD           FLOAT,
+        IWA           FLOAT,
+        PSH           FLOAT,
+        PSD           FLOAT,
+        PSA           FLOAT,
+        WHH           FLOAT,
+        WHD           FLOAT,
+        WHA           FLOAT,
+        VCH           FLOAT,
+        VCD           FLOAT,
+        VCA           FLOAT,
+        B365_2_5O     FLOAT,
+        B365_2_5U     FLOAT,
+        P_2_5O        FLOAT,
+        P_2_5U        FLOAT,
+        MaxH          FLOAT,
+        MaxD          FLOAT,
+        MaxA          FLOAT,
+        AvgH          FLOAT,
+        AvgD          FLOAT,
+        AvgA          FLOAT,
+        B365CH        FLOAT,
+        B365CD        FLOAT,
+        B365CA        FLOAT,
+        BWCH          FLOAT,
+        BWCD          FLOAT,
+        BWCA          FLOAT,
+        IWCH          FLOAT,
+        IWCD          FLOAT,
+        IWCA          FLOAT,
+        PSCH          FLOAT,
+        PSCD          FLOAT,
+        PSCA          FLOAT,
+        WHCH          FLOAT,
+        WHCD          FLOAT,
+        WHCA          FLOAT,
+        VCCH          FLOAT,
+        VCCD          FLOAT,
+        VCCA          FLOAT,
+        MaxCH         FLOAT,
+        MaxCD         FLOAT,
+        MaxCA         FLOAT,
+        AvgCH         FLOAT,
+        AvgCD         FLOAT,
+        AvgCA         FLOAT,
+        AHh           FLOAT,
+        B365AHH       FLOAT,
+        B365AHA       FLOAT,
+        PAHH          FLOAT,
+        PAHA          FLOAT,
+        MaxAHH        FLOAT,
+        MaxAHA        FLOAT,
+        AvgAHH        FLOAT,
+        AvgAHA        FLOAT,
+        SourceFile    VARCHAR(255),
+        LoadTimestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        ProcessedFlag TINYINT DEFAULT 0,
+        INDEX idx_processed (ProcessedFlag)
+        ENGINE=InnoDB
+        DEFAULT CHARSET=utf8mb4
+              
+Operational Tables:
+    Teams
+        TeamID INT AUTO_INCREMENT PRIMARY KEY,
+        TeamName VARCHAR(100) NOT NULL UNIQUE,
+        ShortName VARCHAR(50) NOT NULL,
+        Stadium VARCHAR(100),
+        City VARCHAR(50),
+        YearFounded INT,
+        CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+        ModifiedDate DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ENGINE=InnoDB 
+        DEFAULT CHARSET=utf8mb4
+        
+    Seasons
+        SeasonID INT AUTO_INCREMENT PRIMARY KEY,
+        SeasonName VARCHAR(20) NOT NULL UNIQUE,
+        StartDate DATE NOT NULL,
+        EndDate DATE NOT NULL,
+        CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP
+        ENGINE=InnoDB 
+        DEFAULT CHARSET=utf8mb4
+        
+    Referees
+        RefereeID INT AUTO_INCREMENT PRIMARY KEY,
+        RefereeName VARCHAR(100) NOT NULL UNIQUE,
+        YearsExperience INT,
+        Nationality VARCHAR(50),
+        CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+        ModifiedDate DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ENGINE=InnoDB 
+        DEFAULT CHARSET=utf8mb4;
+        
+    Divisions
+        DivisionID INT AUTO_INCREMENT PRIMARY KEY,
+        DivisionCode VARCHAR(10) NOT NULL UNIQUE,
+        LeagueName VARCHAR(100),
+        Country VARCHAR(50),
+        Tier INT,
+        CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP
+        ENGINE=InnoDB 
+        DEFAULT CHARSET=utf8mb4;        
+
+    Matches
+        MatchID INT AUTO_INCREMENT PRIMARY KEY,
+        SeasonID INT NOT NULL,
+        DivisionID INT NOT NULL,
+        MatchDate DATE NOT NULL,
+        MatchTime TIME,
+        HomeTeamID INT NOT NULL,
+        AwayTeamID INT NOT NULL,
+        FTHG INT NOT NULL,
+        FTAG INT NOT NULL,
+        FTR CHAR(1) NOT NULL,
+        HTHG INT,
+        HTAG INT,
+        HTR CHAR(1),
+        RefereeID INT,
+        CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (SeasonID) REFERENCES Seasons(SeasonID),
+        FOREIGN KEY (DivisionID) REFERENCES Divisions(DivisionID),
+        FOREIGN KEY (HomeTeamID) REFERENCES Teams(TeamID),
+        FOREIGN KEY (AwayTeamID) REFERENCES Teams(TeamID),
+        FOREIGN KEY (RefereeID) REFERENCES Referees(RefereeID),
+        UNIQUE (HomeTeamID, AwayTeamID, MatchDate, MatchTime),
+        CHECK (HomeTeamID <> AwayTeamID),
+        CHECK (FTR IN ('H', 'D', 'A')),
+        CHECK (HTR IN ('H', 'D', 'A'))
+        ENGINE=InnoDB 
+        DEFAULT CHARSET=utf8mb4;
+
+    MatchStatistics
+        StatID INT AUTO_INCREMENT PRIMARY KEY,
+        MatchID INT NOT NULL UNIQUE,
+        HomeShots INT CHECK (HomeShots >= 0),
+        AwayShots INT CHECK (AwayShots >= 0),
+        HomeShotsTarget INT CHECK (HomeShotsTarget >= 0),
+        AwayShotsTarget INT CHECK (AwayShotsTarget >= 0),
+        HomeCorners INT CHECK (HomeCorners >= 0),
+        AwayCorners INT CHECK (AwayCorners >= 0),
+        HomeFouls INT CHECK (HomeFouls >= 0),
+        AwayFouls INT CHECK (AwayFouls >= 0),
+        HomeYellowCards INT CHECK (HomeYellowCards >= 0),
+        AwayYellowCards INT CHECK (AwayYellowCards >= 0),
+        HomeRedCards INT CHECK (HomeRedCards >= 0),
+        AwayRedCards INT CHECK (AwayRedCards >= 0),
+        CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (MatchID) REFERENCES Matches(MatchID)
+        ENGINE=InnoDB 
+        DEFAULT CHARSET=utf8mb4;
+
+        
+   Markets
+        MarketID INT AUTO_INCREMENT PRIMARY KEY,
+        MarketType VARCHAR(50) NOT NULL,
+        MarketSubtype VARCHAR(50),
+        Parameter VARCHAR(20),
+        Description VARCHAR(255),
+        CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (MarketType, MarketSubtype, Parameter)
+        ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+    BettingOdds
+        OddsID INT AUTO_INCREMENT PRIMARY KEY,
+        MatchID INT NOT NULL,
+        BookmakerID INT NOT NULL,
+        MarketID INT NOT NULL,
+        OutcomeCode VARCHAR(10) NOT NULL,
+        OddsValue FLOAT NOT NULL CHECK (OddsValue > 1.0),
+        CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (MatchID) REFERENCES Matches(MatchID),
+        FOREIGN KEY (BookmakerID) REFERENCES Bookmakers(BookmakerID),
+        FOREIGN KEY (MarketID) REFERENCES Markets(MarketID),
+        UNIQUE (MatchID, BookmakerID, MarketID, OutcomeCode)
+        ENGINE=InnoDB 
+        DEFAULT CHARSET=utf8mb4;
+
+    ETLLog
+        LogID INT AUTO_INCREMENT PRIMARY KEY,
+        ProcessName VARCHAR(100) NOT NULL,
+        StartTime DATETIME NOT NULL,
+        EndTime DATETIME,
+        RecordsProcessed INT DEFAULT 0,
+        RecordsFailed INT DEFAULT 0,
+        Status VARCHAR(20),
+        ErrorMessage TEXT,
+        CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP
+        ENGINE=InnoDB 
+        DEFAULT CHARSET=utf8mb4;
+
+    ETLDeadLetter
+        Id INT AUTO_INCREMENT PRIMARY KEY,
+        SourceTable VARCHAR(100) NOT NULL,
+        SourceId INT,
+        ErrorMessage TEXT,
+        RawData TEXT,
+        ErrorTimestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        ENGINE=InnoDB 
+        DEFAULT CHARSET=utf8mb4;
+
+Views:
+
+    vw_MatchDetails AS
+        SELECT 
+            m.MatchID,
+            s.SeasonName,
+            d.LeagueName,
+            d.DivisionCode,
+            m.MatchDate,
+            m.MatchTime,
+            ht.TeamName AS HomeTeam,
+            at.TeamName AS AwayTeam,
+            m.FTHG,
+            m.FTAG,
+            m.FTR,
+            m.HTHG,
+            m.HTAG,
+            m.HTR,
+            r.RefereeName,
+            ms.HomeShots,
+            ms.AwayShots,
+            ms.HomeShotsTarget,
+            ms.AwayShotsTarget,
+            ms.HomeCorners,
+            ms.AwayCorners,
+            ms.HomeFouls,
+            ms.AwayFouls,
+            ms.HomeYellowCards,
+            ms.AwayYellowCards,
+            ms.HomeRedCards,
+            ms.AwayRedCards
+        FROM Matches m
+        JOIN Teams ht ON m.HomeTeamID = ht.TeamID
+        JOIN Teams at ON m.AwayTeamID = at.TeamID
+        LEFT JOIN Seasons s ON m.SeasonID = s.SeasonID
+        LEFT JOIN Divisions d ON m.DivisionID = d.DivisionID
+        LEFT JOIN Referees r ON m.RefereeID = r.RefereeID
+        LEFT JOIN MatchStatistics ms ON m.MatchID = ms.MatchID
+        
+    vw_LeagueTable AS
+        WITH TeamMatches AS (
+            -- Home matches
+            SELECT
+                m.SeasonID,
+                s.SeasonName,
+                m.DivisionID,
+                d.DivisionCode,
+                d.LeagueName,
+                m.HomeTeamID AS TeamID,
+                t.TeamName,
+                COUNT(*) AS Played,
+                SUM(CASE WHEN m.FTR = 'H' THEN 1 ELSE 0 END) AS Won,
+                SUM(CASE WHEN m.FTR = 'D' THEN 1 ELSE 0 END) AS Drawn,
+                SUM(CASE WHEN m.FTR = 'A' THEN 1 ELSE 0 END) AS Lost,
+                SUM(m.FTHG) AS GoalsFor,
+                SUM(m.FTAG) AS GoalsAgainst,
+                SUM(CASE WHEN m.FTR = 'H' THEN 3 WHEN m.FTR = 'D' THEN 1 ELSE 0 END) AS Points
+            FROM Matches m
+            JOIN Teams t ON m.HomeTeamID = t.TeamID
+            JOIN Seasons s ON m.SeasonID = s.SeasonID
+            JOIN Divisions d ON m.DivisionID = d.DivisionID
+            GROUP BY m.SeasonID, s.SeasonName, m.DivisionID, d.DivisionCode, d.LeagueName, m.HomeTeamID, t.TeamName
+            
+            UNION ALL
+            
+            -- Away matches
+            SELECT
+                m.SeasonID,
+                s.SeasonName,
+                m.DivisionID,
+                d.DivisionCode,
+                d.LeagueName,
+                m.AwayTeamID AS TeamID,
+                t.TeamName,
+                COUNT(*) AS Played,
+                SUM(CASE WHEN m.FTR = 'A' THEN 1 ELSE 0 END) AS Won,
+                SUM(CASE WHEN m.FTR = 'D' THEN 1 ELSE 0 END) AS Drawn,
+                SUM(CASE WHEN m.FTR = 'H' THEN 1 ELSE 0 END) AS Lost,
+                SUM(m.FTAG) AS GoalsFor,
+                SUM(m.FTHG) AS GoalsAgainst,
+                SUM(CASE WHEN m.FTR = 'A' THEN 3 WHEN m.FTR = 'D' THEN 1 ELSE 0 END) AS Points
+            FROM Matches m
+            JOIN Teams t ON m.AwayTeamID = t.TeamID
+            JOIN Seasons s ON m.SeasonID = s.SeasonID
+            JOIN Divisions d ON m.DivisionID = d.DivisionID
+            GROUP BY m.SeasonID, s.SeasonName, m.DivisionID, d.DivisionCode, d.LeagueName, m.AwayTeamID, t.TeamName
+        )
+        
+        SELECT
+            SeasonID,
+            SeasonName,
+            DivisionID,
+            DivisionCode,
+            LeagueName,
+            TeamID,
+            TeamName,
+            SUM(Played) AS Played,
+            SUM(Won) AS Won,
+            SUM(Drawn) AS Drawn,
+            SUM(Lost) AS Lost,
+            SUM(GoalsFor) AS GF,
+            SUM(GoalsAgainst) AS GA,
+            SUM(GoalsFor) - SUM(GoalsAgainst) AS GD,
+            SUM(Points) AS Points
+        FROM TeamMatches
+        GROUP BY SeasonID, SeasonName, DivisionID, DivisionCode, LeagueName, TeamID, TeamName
+        ORDER BY SeasonID, DivisionID, Points DESC, GD DESC, GF DESC
+        """)
