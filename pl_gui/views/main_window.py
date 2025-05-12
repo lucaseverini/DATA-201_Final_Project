@@ -92,7 +92,8 @@ class MainWindow(QMainWindow):
         if reply == QMessageBox.Yes:
             try:
                 clear_etl_logs()
-                self.etl_control.load_etl_log()
+                if hasattr(self, "etl_control"):
+                    self.etl_control.load_etl_log()
                 QMessageBox.information(self, "Logs Cleared", "All ETL logs have been deleted.")
   
             except Exception as e:
