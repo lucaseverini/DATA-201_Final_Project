@@ -29,6 +29,10 @@ class MainWindow(QMainWindow):
         self.etl_action.triggered.connect(self.show_etl_control)
         self.view_menu.addAction(self.etl_action)
 
+        self.viz_action = QAction("Visualizations", self)
+        self.viz_action.triggered.connect(self.show_visualizations)
+        self.view_menu.addAction(self.viz_action)
+
         # Utilities menu
         self.util_menu = self.menu.addMenu("Utilities")
         self.clean_action = QAction("Clean All Tables", self)
@@ -99,3 +103,7 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 QMessageBox.critical(self, "Error", str(e))
 
+    def show_visualizations(self):
+        from views.visualization_view import VisualizationView
+        self.viz_view = VisualizationView()
+        self.set_central_widget(self.viz_view)
