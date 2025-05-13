@@ -1,0 +1,137 @@
+Core Tables:
+
+1. Teams
+TeamID (PK)
+TeamName HomeGroundName City
+IsTop6Club (Boolean) Region
+YearFounded
+
+2. Seasons 
+SeasonID (PK)
+SeasonName (e.g., "2023-2024") StartDate
+EndDate
+NumberOfTeams
+VARIntroduced (Boolean)
+COVIDSeason (Boolean)
+
+3. Matches 
+MatchID (PK)
+SeasonID (FK)
+MatchDate
+MatchTime
+HomeTeamID (FK) 
+AwayTeamID (FK)
+FTHG (Full Time Home Goals)
+FTAG (Full Time Away Goals) 
+FTR (Full Time Result)
+HTHG (Half Time Home Goals) 
+HTAG (Half Time Away Goals) 
+HTR (Half Time Result) 
+RefereeID (FK)
+Attendance
+IsNeutralVenue (Boolean)
+
+4. MatchStatistics 
+StatID (PK)
+MatchID (FK) 
+HomeShots 
+AwayShots 
+HomeShotsTarget 
+AwayShotsTarget 
+HomeCorners 
+AwayCorners 
+HomeFouls 
+AwayFouls 
+HomeYellowCards 
+AwayYellowCards 
+HomeRedCards 
+AwayRedCards
+
+5. Referees 
+RefereeID (PK)
+RefereeName 
+YearsExperience 
+MatchesOfficiated 
+AverageCardsPerMatch
+
+6. Bookmakers 
+BookmakerID (PK)
+BookmakerName
+BookmakerCode (e.g., "B365", "BW", "PS") 
+Website
+
+7. BettingOdds 
+OddsID (PK)
+MatchID (FK)
+BookmakerID (FK)
+MarketType (ENUM: 'MatchResult', 'OverUnder25', 'AsianHandicap') 
+HomeWinOdds
+DrawOdds
+AwayWinOdds
+OverOdds
+UnderOdds
+AsianHandicap
+AHHomeOdds
+AHAwayOdds
+OddsTimestamp
+IsClosingOdds (Boolean)
+Analytical Database (Star Schema) 
+
+Fact Tables:
+
+1. TeamMatchStatsFact 
+FactID (PK)
+MatchID (FK) 
+TeamID (FK) 
+TimeID (FK) 
+RefereeID (FK) 
+IsHome (Boolean) 
+Goals 
+GoalsConceded 
+Shots 
+ShotsOnTarget 
+Corners
+Fouls
+YellowCards
+RedCards
+Result (ENUM: 'W', 'D', 'L') 
+PointsEarned 
+ExpectedGoals (calculated) 
+ShotAccuracy 
+ShotConversion
+
+2. BettingMarketFact
+FactID (PK)
+MatchID (FK)
+BookmakerID (FK)
+TimeID (FK)
+MarketType (FK)
+ActualResult (ENUM: 'H', 'D', 'A') 
+HomeWinOdds
+DrawOdds 
+AwayWinOdds 
+ImpliedProbabilityHome 
+ImpliedProbabilityDraw 
+ImpliedProbabilityAway 
+BookmakerMargin 
+OddsWon (Boolean) 
+ReturnOnInvestment 
+ValueBetIndex
+
+Dimension Tables:
+
+1. TeamDimension 
+(expanded from Teams table)
+
+2. TimeDimension 
+(date hierarchies: Year, Season, Month, Week, Day) 
+
+3. RefereeDimension 
+(expanded from Referees table)
+
+4. BookmakerDimension 
+(different betting companies)
+
+5. MarketTypeDimension 
+(different betting markets)
+

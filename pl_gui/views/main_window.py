@@ -33,6 +33,10 @@ class MainWindow(QMainWindow):
         self.viz_action.triggered.connect(self.show_visualizations)
         self.view_menu.addAction(self.viz_action)
 
+        self.ref_stats_action = QAction("Referee Stats", self)
+        self.ref_stats_action.triggered.connect(self.show_referee_stats)
+        self.view_menu.addAction(self.ref_stats_action)
+
         # Utilities menu
         self.util_menu = self.menu.addMenu("Utilities")
         self.clean_action = QAction("Clean All Tables", self)
@@ -107,3 +111,8 @@ class MainWindow(QMainWindow):
         from views.visualization_view import VisualizationView
         self.viz_view = VisualizationView()
         self.set_central_widget(self.viz_view)
+
+    def show_referee_stats(self):
+        from views.referee_stats_view import RefereeStatsView
+        self.ref_stats_view = RefereeStatsView()
+        self.set_central_widget(self.ref_stats_view)

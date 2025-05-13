@@ -13,7 +13,8 @@ from PyQt5.QtWidgets import QHBoxLayout, QSpacerItem, QSizePolicy, QFileDialog
 from PyQt5.QtWidgets import QListWidget, QListWidgetItem, QMessageBox
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from models.league_table_model import get_league_table_data, get_all_seasons
+from models.league_table_model import get_league_table_data
+from models.etl_model import get_all_seasons
 import os
 
 class VisualizationView(QWidget):

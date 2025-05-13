@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QPushButton, QTableWidget, QTableWidgetItem, QLabel, QComboBox, QMessageBox
 )
 from controllers.league_table_controller import get_league_table
-from models.league_table_model import get_all_seasons  # new import
+from models.etl_model import get_all_seasons
 
 class LeagueTableView(QWidget):
     def __init__(self):

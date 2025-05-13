@@ -560,3 +560,64 @@ def clear_etl_logs():
     finally:
         cursor.close()
         conn.close()
+
+def get_all_referees():
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT RefereeName FROM Referees ORDER BY RefereeName")
+        return [row[0] for row in cursor.fetchall()]
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_referee_stats(season_name, referee_name):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT COUNT(ms.MatchID) AS Matches,
+                   SUM(ms.HomeYellowCards + ms.AwayYellowCards) / COUNT(ms.MatchID) AS AvgYellow,
+                   SUM(ms.HomeRedCards + ms.AwayRedCards) / COUNT(ms.MatchID) AS AvgRed,
+                   SUM(ms.HomeFouls + ms.AwayFouls) / COUNT(ms.MatchID) AS AvgFouls
+            FROM MatchStatistics ms
+            JOIN Matches m ON ms.MatchID = m.MatchID
+            JOIN Seasons s ON m.SeasonID = s.SeasonID
+            JOIN Referees r ON m.RefereeID = r.RefereeID
+            WHERE s.SeasonName = %s AND r.RefereeName = %s
+        """, (season_name, referee_name))
+        return cursor.fetchone()
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_all_seasons():
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT SeasonName FROM Seasons ORDER BY StartDate DESC")
+        return [row[0] for row in cursor.fetchall()]
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_referee_trend_stats(season_name, referee_name):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT m.MatchDate,
+                   ms.HomeYellowCards, ms.AwayYellowCards,
+                   ms.HomeRedCards, ms.AwayRedCards,
+                   ms.HomeFouls, ms.AwayFouls
+            FROM MatchStatistics ms
+            JOIN Matches m ON ms.MatchID = m.MatchID
+            JOIN Referees r ON m.RefereeID = r.RefereeID
+            JOIN Seasons s ON m.SeasonID = s.SeasonID
+            WHERE r.RefereeName = %s AND s.SeasonName = %s
+            ORDER BY m.MatchDate
+        """, (referee_name, season_name))
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
