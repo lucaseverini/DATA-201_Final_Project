@@ -5,6 +5,8 @@
 # Instructor: Ronald Mak ron.mak@sjsu.edu
 # Student: Luca Severini 008879273 luca.severini@sjsu.edu
 
+# models/etl_model.py
+
 from db.connection import get_connection
 import pandas as pd
 from datetime import datetime
@@ -617,6 +619,86 @@ def get_referee_trend_stats(season_name, referee_name):
             WHERE r.RefereeName = %s AND s.SeasonName = %s
             ORDER BY m.MatchDate
         """, (referee_name, season_name))
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_all_teams():
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT TeamName FROM Teams ORDER BY TeamName")
+        return [row[0] for row in cursor.fetchall()]
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_team_points_by_matchday(season_name, team_name):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT m.MatchDate,
+                   CASE
+                       WHEN t.TeamID = m.HomeTeamID THEN
+                           CASE m.FTR WHEN 'H' THEN 3 WHEN 'D' THEN 1 ELSE 0 END
+                       WHEN t.TeamID = m.AwayTeamID THEN
+                           CASE m.FTR WHEN 'A' THEN 3 WHEN 'D' THEN 1 ELSE 0 END
+                       ELSE 0
+                   END AS Points
+            FROM Matches m
+            JOIN Seasons s ON m.SeasonID = s.SeasonID
+            JOIN Teams t ON t.TeamName = %s
+            WHERE s.SeasonName = %s
+              AND (m.HomeTeamID = t.TeamID OR m.AwayTeamID = t.TeamID)
+              AND m.FTR IN ('H', 'D', 'A')
+            ORDER BY m.MatchDate
+        """, (team_name, season_name))
+
+        results = cursor.fetchall()
+        # Add matchday index for plotting
+        for i, row in enumerate(results):
+            row["Matchday"] = i + 1
+        return results
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_team_match_trend_data(season_name, team_name):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT 
+                m.MatchDate,
+                CASE
+                    WHEN t.TeamID = m.HomeTeamID THEN
+                        CASE m.FTR WHEN 'H' THEN 3 WHEN 'D' THEN 1 ELSE 0 END
+                    WHEN t.TeamID = m.AwayTeamID THEN
+                        CASE m.FTR WHEN 'A' THEN 3 WHEN 'D' THEN 1 ELSE 0 END
+                    ELSE 0
+                END AS Points,
+                CASE WHEN m.HomeTeamID = t.TeamID THEN m.FTHG ELSE m.FTAG END AS GF,
+                CASE WHEN m.HomeTeamID = t.TeamID THEN m.FTAG ELSE m.FTHG END AS GA,
+                CASE 
+                    WHEN m.HomeTeamID = t.TeamID THEN 'Home' 
+                    ELSE 'Away' 
+                END AS HomeOrAway,
+                CASE 
+                    WHEN m.HomeTeamID = t.TeamID THEN at.TeamName
+                    ELSE ht.TeamName
+                END AS Opponent
+            FROM Matches m
+            JOIN Teams t ON t.TeamName = %s
+            JOIN Teams ht ON ht.TeamID = m.HomeTeamID
+            JOIN Teams at ON at.TeamID = m.AwayTeamID
+            JOIN Seasons s ON m.SeasonID = s.SeasonID
+            WHERE s.SeasonName = %s
+              AND (m.HomeTeamID = t.TeamID OR m.AwayTeamID = t.TeamID)
+              AND m.FTR IN ('H', 'D', 'A')
+            ORDER BY m.MatchDate
+        """, (team_name, season_name))
         return cursor.fetchall()
     finally:
         cursor.close()

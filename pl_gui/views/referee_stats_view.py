@@ -102,23 +102,23 @@ class RefereeStatsView(QWidget):
         self.generate_button.clicked.connect(self.generate_chart)
         self.layout.addWidget(self.generate_button)
 
+        # Chart canvas
+        self.figure = Figure()
+        self.canvas = FigureCanvas(self.figure)
+        self.canvas.setSizePolicy(self.canvas.sizePolicy().Expanding, self.canvas.sizePolicy().Expanding)
+        self.layout.addWidget(self.canvas, stretch=1)
+
         # Export Chart button
         self.export_button = QPushButton("Export Chart")
         self.export_button.setEnabled(False)
         self.export_button.clicked.connect(self.export_chart)
         self.layout.addWidget(self.export_button)
 
-        # Export Trend Data button
+        # Export Data button
         self.export_data_button = QPushButton("Export Data (CSV)")
         self.export_data_button.setEnabled(False)
         self.export_data_button.clicked.connect(self.export_trend_data)
         self.layout.addWidget(self.export_data_button)
-
-        # Chart canvas
-        self.figure = Figure()
-        self.canvas = FigureCanvas(self.figure)
-        self.canvas.setSizePolicy(self.canvas.sizePolicy().Expanding, self.canvas.sizePolicy().Expanding)
-        self.layout.addWidget(self.canvas, stretch=1)
 
         self.season_selector.currentIndexChanged.connect(self.mark_generate_outdated)
         self.ref_selector.currentIndexChanged.connect(self.mark_generate_outdated)
@@ -246,6 +246,7 @@ class RefereeStatsView(QWidget):
         self.smooth_checkbox.setVisible(is_trend)
         self.window_label.setVisible(is_trend and self.smooth_checkbox.isChecked())
         self.window_spin.setVisible(is_trend and self.smooth_checkbox.isChecked())
+        self.export_data_button.setEnabled(is_trend)
 
     def generate_chart(self):
         self.figure.clear()
@@ -386,7 +387,6 @@ class RefereeStatsView(QWidget):
             cursor.connect("add", format_hover)
                   
             self.export_button.setEnabled(True)
-            self.export_data_button.setEnabled(True)
             self.clear_generate_flag()
  
     def smooth_series(self, data, window):

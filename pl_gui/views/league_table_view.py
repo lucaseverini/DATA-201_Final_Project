@@ -1,6 +1,14 @@
-from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QPushButton, QTableWidget, QTableWidgetItem, QLabel, QComboBox, QMessageBox
-)
+#!/usr/bin/env python3
+
+# Final project (May-23-2025)
+# Class: DATA 201-21
+# Instructor: Ronald Mak ron.mak@sjsu.edu
+# Student: Luca Severini 008879273 luca.severini@sjsu.edu
+
+# views/league_table_view.py
+
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QTableWidget
+from PyQt5.QtWidgets import QTableWidgetItem, QLabel, QComboBox, QMessageBox
 from controllers.league_table_controller import get_league_table
 from models.etl_model import get_all_seasons
 

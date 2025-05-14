@@ -21,7 +21,6 @@ class VisualizationView(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Premier League Visualizations")
-        self.last_export_dir = None
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -59,8 +58,9 @@ class VisualizationView(QWidget):
         # padding = 2  # safe padding for borders/scrollbar
         # self.team_filter.setMinimumHeight((font_height + 4) * visible_rows + padding)
         self.team_filter.setMaximumHeight(142)
+        self.team_filter.itemChanged.connect(self.mark_generate_outdated)
  
-        self.generate_button = QPushButton("Generate")
+        self.generate_button = QPushButton("Generate Chart")
         self.generate_button.clicked.connect(self.generate_chart)
  
         self.export_button = QPushButton("Export Chart")
@@ -69,29 +69,38 @@ class VisualizationView(QWidget):
        
         self.figure = Figure()
 
-        # --- Static controls ---
+        # Season selection
         self.layout.addWidget(QLabel("Select Season:"))
         self.layout.addWidget(self.season_selector)
 
+        # Chart selection
         self.layout.addWidget(QLabel("Select Chart:"))
         self.layout.addWidget(self.chart_selector)
 
+        # Team sort
         self.layout.addWidget(QLabel("Sort Teams By:"))
         self.layout.addWidget(self.sort_selector)
         
+        # Team Filter
         self.layout.addWidget(QLabel("Filter Teams:"))
         self.layout.addWidget(self.team_filter)
 
         self.layout.addWidget(self.generate_button)
 
-        self.layout.addWidget(self.export_button)
-
-        # --- Expanding canvas only ---
+        # Chart
         self.canvas = FigureCanvas(self.figure)
         self.canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.layout.addWidget(self.canvas, stretch=1)  # Only this widget gets extra space
-        
+ 
+        self.layout.addWidget(self.export_button)
+       
         self.update_team_filter()
+
+        self.season_selector.currentIndexChanged.connect(self.mark_generate_outdated)
+        self.chart_selector.currentIndexChanged.connect(self.mark_generate_outdated)
+        self.sort_selector.currentIndexChanged.connect(self.mark_generate_outdated)
+        
+        self.last_export_dir = None
 
     def generate_chart(self):
         chart_type = self.chart_selector.currentText()
@@ -215,6 +224,7 @@ class VisualizationView(QWidget):
         self.canvas.draw()
  
         self.export_button.setEnabled(True)
+        self.clear_generate_flag()
        
     def export_chart(self):
         chart_name = self.chart_selector.currentText().replace(" / ", "-").replace(" ", "_")
@@ -278,4 +288,12 @@ class VisualizationView(QWidget):
             item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
             item.setCheckState(Qt.Checked)
             self.team_filter.addItem(item)
-    
+
+    def mark_generate_outdated(self):
+        self.generate_button.setText("Generate Chart (Outdated)")
+        self.generate_button.setStyleSheet("font-weight: bold; color: darkred;")
+
+    def clear_generate_flag(self):
+        self.generate_button.setText("Generate Chart")
+        self.generate_button.setStyleSheet("")
+  

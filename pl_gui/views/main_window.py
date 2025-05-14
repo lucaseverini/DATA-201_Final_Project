@@ -5,10 +5,15 @@
 # Instructor: Ronald Mak ron.mak@sjsu.edu
 # Student: Luca Severini 008879273 luca.severini@sjsu.edu
 
+# views/main_window.py
+
 from PyQt5.QtWidgets import QMainWindow, QAction, QMenu, QApplication, QMessageBox, QWidget
 from views.league_table_view import LeagueTableView
 from views.etl_control_view import ETLControlView
 from models.etl_model import clean_all_tables, has_season_data, clear_etl_logs
+from views.visualization_view import VisualizationView
+from views.referee_stats_view import RefereeStatsView
+from views.team_trend_view import TeamTrendView
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -29,13 +34,17 @@ class MainWindow(QMainWindow):
         self.etl_action.triggered.connect(self.show_etl_control)
         self.view_menu.addAction(self.etl_action)
 
-        self.viz_action = QAction("Visualizations", self)
+        self.viz_action = QAction("Team Insights", self)
         self.viz_action.triggered.connect(self.show_visualizations)
         self.view_menu.addAction(self.viz_action)
 
         self.ref_stats_action = QAction("Referee Stats", self)
         self.ref_stats_action.triggered.connect(self.show_referee_stats)
         self.view_menu.addAction(self.ref_stats_action)
+
+        self.team_trend_action = QAction("Team Trend", self)
+        self.team_trend_action.triggered.connect(self.show_team_trend)
+        self.view_menu.addAction(self.team_trend_action)
 
         # Utilities menu
         self.util_menu = self.menu.addMenu("Utilities")
@@ -56,20 +65,17 @@ class MainWindow(QMainWindow):
             
         self.resize(1200, 700)
 
-    def set_central_widget(self, widget):
+    def set_central_widget(self, widget, view_name=None):
         if self.current_widget:
             self.current_widget.setParent(None)
         self.current_widget = widget
         self.setCentralWidget(widget)
 
-    def show_league_table(self):
-        self.set_central_widget(LeagueTableView())
-
-    def show_etl_control(self):
-        if not hasattr(self, "etl_control") or self.etl_control is None:
-            self.etl_control = ETLControlView()
-        self.set_central_widget(self.etl_control)
-    
+        title = "Premier League DB Manager"
+        if view_name:
+            title += f" — {view_name}"
+        self.setWindowTitle(title)
+            
     def clean_tables(self):
         reply = QMessageBox.question(
             self,
@@ -107,12 +113,23 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 QMessageBox.critical(self, "Error", str(e))
 
+    def show_league_table(self):
+        self.league_view = LeagueTableView()
+        self.set_central_widget(self.league_view, "League Table")
+
+    def show_etl_control(self):
+        if not hasattr(self, "etl_control") or self.etl_control is None:
+            self.etl_control = ETLControlView()
+        self.set_central_widget(self.etl_control, "ETL Control")
+
     def show_visualizations(self):
-        from views.visualization_view import VisualizationView
         self.viz_view = VisualizationView()
-        self.set_central_widget(self.viz_view)
+        self.set_central_widget(self.viz_view, "Team Insights")
 
     def show_referee_stats(self):
-        from views.referee_stats_view import RefereeStatsView
         self.ref_stats_view = RefereeStatsView()
-        self.set_central_widget(self.ref_stats_view)
+        self.set_central_widget(self.ref_stats_view, "Referee Stats")
+
+    def show_team_trend(self):
+        self.team_trend_view = TeamTrendView()
+        self.set_central_widget(self.team_trend_view, "Team Trend")

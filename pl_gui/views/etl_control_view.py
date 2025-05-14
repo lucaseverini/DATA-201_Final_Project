@@ -5,15 +5,15 @@
 # Instructor: Ronald Mak ron.mak@sjsu.edu
 # Student: Luca Severini 008879273 luca.severini@sjsu.edu
 
-import os
-from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QPushButton, QLabel, QFileDialog,
-    QTableWidget, QTableWidgetItem, QHBoxLayout, QMessageBox, QMainWindow
-)
+# views/etl_control_view.py
+
 from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QFileDialog
+from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHBoxLayout, QMessageBox, QMainWindow
+from models.etl_model import load_csv_to_staging, trigger_etl_job, fetch_etl_log
+from models.etl_model import get_staging_columns, fetch_dead_letter
 import pandas as pd
-from models.etl_model import load_csv_to_staging, trigger_etl_job, fetch_etl_log, fetch_dead_letter
-from models.etl_model import get_staging_columns
+import os
 
 class ETLControlView(QWidget):
     def __init__(self):
