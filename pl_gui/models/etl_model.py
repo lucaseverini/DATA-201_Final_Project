@@ -252,7 +252,16 @@ def trigger_etl_job():
             "Pinnacle Sports": ("PSH", "PSD", "PSA")
         }
 
-        insert_bookmaker_sql = "INSERT IGNORE INTO Bookmakers (BookmakerName) VALUES (%s)"
+        # insert_bookmaker_sql = "INSERT IGNORE INTO Bookmakers (BookmakerName) VALUES (%s)"
+        # Avoids possible bookmaker duplication
+        insert_bookmaker_sql = """
+            INSERT INTO Bookmakers (BookmakerName)
+            SELECT %s FROM DUAL
+            WHERE NOT EXISTS (
+                SELECT 1 FROM Bookmakers WHERE BookmakerName = %s
+            )
+        """
+        cursor.execute(insert_bookmaker_sql, (name.strip(), name.strip()))       
         for name in bookmaker_map:
             cursor.execute(insert_bookmaker_sql, (name,))
         conn.commit()
@@ -700,6 +709,140 @@ def get_team_match_trend_data(season_name, team_name):
             ORDER BY m.MatchDate
         """, (team_name, season_name))
         return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_all_bookmakers():
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT BookmakerName FROM Bookmakers ORDER BY BookmakerName")
+        return [row[0] for row in cursor.fetchall()]
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_implied_probability_data(season_name, bookmaker_name):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT 
+                bo.OddsValue AS HomeOdds,
+                bd.OddsValue AS DrawOdds,
+                ba.OddsValue AS AwayOdds,
+                m.FTR
+            FROM BettingOdds bo
+            JOIN Matches m ON m.MatchID = bo.MatchID
+            JOIN Seasons s ON s.SeasonID = m.SeasonID
+            JOIN Bookmakers b ON b.BookmakerID = bo.BookmakerID
+            JOIN Markets mk ON mk.MarketID = bo.MarketID
+            JOIN BettingOdds bd ON bd.MatchID = bo.MatchID AND bd.BookmakerID = bo.BookmakerID
+                                AND bd.MarketID = bo.MarketID AND bd.OutcomeCode = 'D'
+            JOIN BettingOdds ba ON ba.MatchID = bo.MatchID AND ba.BookmakerID = bo.BookmakerID
+                                AND ba.MarketID = bo.MarketID AND ba.OutcomeCode = 'A'
+            WHERE s.SeasonName = %s
+              AND b.BookmakerName = %s
+              AND mk.MarketType = '1X2'
+              AND mk.MarketSubtype = 'FullTime'
+              AND bo.OutcomeCode = 'H'
+              AND m.FTR IN ('H', 'D', 'A')
+        """, (season_name, bookmaker_name))
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_avg_margins_per_bookmaker(season_name):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT b.BookmakerName,
+                   AVG((1 / boh.OddsValue + 1 / bod.OddsValue + 1 / boa.OddsValue) - 1.0) * 100 AS AvgMargin,
+                   STDDEV_POP((1 / boh.OddsValue + 1 / bod.OddsValue + 1 / boa.OddsValue) - 1.0) * 100 AS StdMargin
+            FROM BettingOdds boh
+            JOIN BettingOdds bod ON bod.MatchID = boh.MatchID AND bod.BookmakerID = boh.BookmakerID
+                AND bod.MarketID = boh.MarketID AND bod.OutcomeCode = 'D'
+            JOIN BettingOdds boa ON boa.MatchID = boh.MatchID AND boa.BookmakerID = boh.BookmakerID
+                AND boa.MarketID = boh.MarketID AND boa.OutcomeCode = 'A'
+            JOIN Matches m ON m.MatchID = boh.MatchID
+            JOIN Seasons s ON s.SeasonID = m.SeasonID
+            JOIN Bookmakers b ON b.BookmakerID = boh.BookmakerID
+            JOIN Markets mk ON mk.MarketID = boh.MarketID
+            WHERE boh.OutcomeCode = 'H'
+              AND mk.MarketType = '1X2'
+              AND mk.MarketSubtype = 'FullTime'
+              AND boh.OddsValue > 1.01 AND bod.OddsValue > 1.01 AND boa.OddsValue > 1.01
+              AND s.SeasonName = %s
+            GROUP BY b.BookmakerName
+            ORDER BY AvgMargin DESC
+        """, (season_name,))
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+
+def deduplicate_bookmakers():
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        # Step 1: Count duplicate names
+        cursor.execute("""
+            SELECT BookmakerName
+            FROM Bookmakers
+            GROUP BY BookmakerName
+            HAVING COUNT(*) > 1
+        """)
+        duplicates = cursor.fetchall()
+        if not duplicates:
+            return "No duplicate bookmaker names found."
+
+        # Step 2: Reassign odds from duplicate IDs to canonical one
+        cursor.execute("""
+            UPDATE BettingOdds bo
+            JOIN (
+                SELECT b1.BookmakerID AS DuplicateID, b2.MinID AS KeepID
+                FROM Bookmakers b1
+                JOIN (
+                    SELECT BookmakerName, MIN(BookmakerID) AS MinID
+                    FROM Bookmakers
+                    GROUP BY BookmakerName
+                ) b2 ON b1.BookmakerName = b2.BookmakerName
+                WHERE b1.BookmakerID != b2.MinID
+            ) map ON bo.BookmakerID = map.DuplicateID
+            SET bo.BookmakerID = map.KeepID
+        """)
+
+        # Step 3: Delete redundant rows
+        cursor.execute("""
+            DELETE FROM Bookmakers
+            WHERE BookmakerID NOT IN (
+                SELECT * FROM (
+                    SELECT MIN(BookmakerID)
+                    FROM Bookmakers
+                    GROUP BY BookmakerName
+                ) AS keep_ids
+            )
+        """)
+
+        # Step 4: Add UNIQUE constraint if not present
+        try:
+            cursor.execute("""
+                ALTER TABLE Bookmakers
+                ADD CONSTRAINT unique_bookmaker_name UNIQUE (BookmakerName)
+            """)
+        except Exception as e:
+            if "Duplicate" not in str(e) and "already exists" not in str(e):
+                raise  # Only ignore expected "already exists" errors
+
+        conn.commit()
+        return f"{len(duplicates)} duplicate bookmaker name(s) fixed."
+
+    except Exception as e:
+        conn.rollback()
+        raise RuntimeError(f"Error during bookmaker cleanup: {str(e)}")
     finally:
         cursor.close()
         conn.close()

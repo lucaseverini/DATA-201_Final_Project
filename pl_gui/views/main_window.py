@@ -11,9 +11,11 @@ from PyQt5.QtWidgets import QMainWindow, QAction, QMenu, QApplication, QMessageB
 from views.league_table_view import LeagueTableView
 from views.etl_control_view import ETLControlView
 from models.etl_model import clean_all_tables, has_season_data, clear_etl_logs
+from models.etl_model import deduplicate_bookmakers
 from views.visualization_view import VisualizationView
 from views.referee_stats_view import RefereeStatsView
 from views.team_trend_view import TeamTrendView
+from views.odds_analysis_view import OddsAnalysisView
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -46,6 +48,10 @@ class MainWindow(QMainWindow):
         self.team_trend_action.triggered.connect(self.show_team_trend)
         self.view_menu.addAction(self.team_trend_action)
 
+        self.odds_analysis_action = QAction("Odds Analysis", self)
+        self.odds_analysis_action.triggered.connect(self.show_odds_analysis)
+        self.view_menu.addAction(self.odds_analysis_action)
+
         # Utilities menu
         self.util_menu = self.menu.addMenu("Utilities")
         self.clean_action = QAction("Clean All Tables", self)
@@ -55,6 +61,10 @@ class MainWindow(QMainWindow):
         self.clear_logs_action = QAction("Clear All Logs", self)
         self.clear_logs_action.triggered.connect(self.clear_logs)
         self.util_menu.addAction(self.clear_logs_action)
+
+        self.dedup_bookmakers_action = QAction("Fix Duplicate Bookmakers", self)
+        self.dedup_bookmakers_action.triggered.connect(self.fix_duplicate_bookmakers)
+        self.util_menu.addAction(self.dedup_bookmakers_action)
        
         self.current_widget = None
         
@@ -133,3 +143,25 @@ class MainWindow(QMainWindow):
     def show_team_trend(self):
         self.team_trend_view = TeamTrendView()
         self.set_central_widget(self.team_trend_view, "Team Trend")
+
+    def show_odds_analysis(self):
+        self.set_central_widget(OddsAnalysisView(), "Odds Analysis")
+
+    def fix_duplicate_bookmakers(self):
+        reply = QMessageBox.question(
+            self,
+            "Confirm Cleanup",
+            "This will remove duplicate bookmaker names and reassign related odds.\n"
+            "Do you want to proceed?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        try:
+            msg = deduplicate_bookmakers()
+            QMessageBox.information(self, "Cleanup Result", msg)
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", str(e))
+        
