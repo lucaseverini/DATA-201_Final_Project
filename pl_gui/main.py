@@ -18,24 +18,22 @@ def handle_interrupt():
     # QApplication.quit()
     sys.exit(1)
 
-# Needed for clean Ctrl+C termination
-signal.signal(signal.SIGINT, signal.SIG_IGN)  # Ignore in Qt thread
+def main():
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    app = QApplication(sys.argv)
+    app.setApplicationName("Premier League DB Manager")  # 👈 correct name
+    signal.signal(signal.SIGINT, lambda sig, frame: handle_interrupt())
 
-app = QApplication(sys.argv)
+    timer = QTimer()
+    timer.start(100)
+    timer.timeout.connect(lambda: None)
 
-# Reinstall signal handler in main thread
-signal.signal(signal.SIGINT, lambda sig, frame: handle_interrupt())
+    window = MainWindow()
+    window.show()
 
-# Dummy timer to keep the event loop processing signals
-timer = QTimer()
-timer.start(100)
-timer.timeout.connect(lambda: None)
+    status = app.exec_()
+    print(f"{BOLD}Program quit.{RESET}")
+    sys.exit(status)
 
-# window = LeagueTableView()
-window = MainWindow()
-window.show()
-
-status = app.exec_()
-
-print(f"{BOLD}Program quit.{RESET}")
-sys.exit(status)
+if __name__ == "__main__":
+    main()

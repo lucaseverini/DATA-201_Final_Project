@@ -7,7 +7,11 @@
 
 # views/main_window.py
 
-from PyQt5.QtWidgets import QMainWindow, QAction, QMenu, QApplication, QMessageBox, QWidget
+from PyQt5.QtWidgets import QMainWindow, QAction, QMenu, QApplication
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton
+from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QLineEdit, QLabel
+from PyQt5.QtWidgets import QComboBox, QMessageBox
+from PyQt5.QtWidgets import QWidget, QInputDialog
 from views.league_table_view import LeagueTableView
 from views.etl_control_view import ETLControlView
 from models.etl_model import clean_all_tables, has_season_data, clear_etl_logs
@@ -16,6 +20,11 @@ from views.visualization_view import VisualizationView
 from views.referee_stats_view import RefereeStatsView
 from views.team_trend_view import TeamTrendView
 from views.odds_analysis_view import OddsAnalysisView
+from dialogs.user_management_dialog import UserManagementDialog
+from dialogs.login_dialog import LoginDialog
+from db.connection import get_connection
+import hashlib
+import sys
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -23,6 +32,16 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Premier League DB Manager")
 
         self.menu = self.menuBar()
+        
+        self.current_widget = None
+        
+        # Login
+        login_dialog = LoginDialog()
+        if login_dialog.exec_() != QDialog.Accepted:
+            sys.exit(1)
+
+        self.username = login_dialog.username
+        self.role = login_dialog.role
         
         # Views menu
         self.view_menu = self.menu.addMenu("Views")
@@ -65,9 +84,16 @@ class MainWindow(QMainWindow):
         self.dedup_bookmakers_action = QAction("Fix Duplicate Bookmakers", self)
         self.dedup_bookmakers_action.triggered.connect(self.fix_duplicate_bookmakers)
         self.util_menu.addAction(self.dedup_bookmakers_action)
-       
-        self.current_widget = None
-        
+
+        self.util_menu.setEnabled(self.role in ["admin", "manager"])
+
+        # Admin-only menu
+        if self.role == "admin":
+            self.admin_menu = self.menu.addMenu("Admin")
+            self.user_mgmt_action = QAction("User Management", self)
+            self.user_mgmt_action.triggered.connect(self.open_user_management)
+            self.admin_menu.addAction(self.user_mgmt_action)
+             
         if has_season_data():
             self.show_league_table()
         else:
@@ -164,4 +190,34 @@ class MainWindow(QMainWindow):
 
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
-        
+ 
+ 
+    def hash_password(password: str) -> str:
+        return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+    def authenticate_user(self):
+        username, ok1 = QInputDialog.getText(None, "Login", "Username:")
+        if not ok1 or not username:
+            return None, None
+        password, ok2 = QInputDialog.getText(None, "Login", "Password:", QInputDialog.Password)
+        if not ok2 or not password:
+            return None, None
+
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT PasswordHash, Role FROM Users WHERE Username = %s", (username,))
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not row:
+            return None, None
+        hash_db, role = row
+        if hash_password(password) == hash_db:
+            return username, role
+        return None, None      
+         
+    def open_user_management(self):
+        dlg = UserManagementDialog(self)
+        dlg.exec_()
+
