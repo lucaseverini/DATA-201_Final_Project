@@ -12,8 +12,10 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QFileDial
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHBoxLayout, QMessageBox, QMainWindow
 from models.etl_model import load_csv_to_staging, trigger_etl_job, fetch_etl_log
 from models.etl_model import get_staging_columns, fetch_dead_letter
+from models.etl_model import get_staging_columns, has_season_data
 import pandas as pd
 import os
+import hashlib
 
 class ETLControlView(QWidget):
     def __init__(self):
@@ -59,6 +61,8 @@ class ETLControlView(QWidget):
         self.layout.addWidget(self.refresh_dlq_button)
 
         self.csv_path = None
+        self.file_hash = None
+        
         self.resize(1000, 600)
 
     def select_file(self):
@@ -79,20 +83,23 @@ class ETLControlView(QWidget):
             # Apply exact column renaming as in notebook
             df.columns = (
                 df.columns
-                .str.replace('>', '_2_5O', regex=False)
-                .str.replace('<', '_2_5U', regex=False)
+                .str.replace('>2.5', '_2_5O', regex=False)
+                .str.replace('<2.5', '_2_5U', regex=False)
                 .str.replace('.', '_', regex=False)
                 .str.strip()
             )
 
             # Drop columns not in DB table, just like notebooks did manually
-            from models.etl_model import get_staging_columns
             valid_cols = get_staging_columns()
             df = df[[col for col in df.columns if col in valid_cols]]
 
             # Fix European-style date format to standard ISO
             df['Date'] = pd.to_datetime(df['Date'], dayfirst=True)
             df['Time'] = pd.to_datetime(df['Time'], format='%H:%M', errors='coerce').dt.time
+
+            # Use file hash to mark and avoid to stage and ETL the same file again
+            self.file_hash = compute_file_hash(self.csv_path)
+            df["FileHash"] = self.file_hash
 
             # Load cleaned DataFrame into staging
             load_csv_to_staging(df)
@@ -104,12 +111,11 @@ class ETLControlView(QWidget):
 
     def run_etl(self):
         try:
-            result = trigger_etl_job()
+            result = trigger_etl_job(self.file_hash)
             QMessageBox.information(self, "ETL Status", result)
 
             mw = self.window()
             if isinstance(mw, QMainWindow) and hasattr(mw, 'league_action'):
-                from models.etl_model import has_season_data
                 mw.league_action.setEnabled(has_season_data())
                
         except Exception as e:
@@ -146,3 +152,7 @@ class ETLControlView(QWidget):
             for j, key in enumerate(row):
                 self.dlq_table.setItem(i, j, QTableWidgetItem(str(row[key])))
 
+def compute_file_hash(file_path):
+    with open(file_path, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest()
+    

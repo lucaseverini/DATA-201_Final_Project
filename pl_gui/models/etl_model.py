@@ -10,6 +10,7 @@
 from db.connection import get_connection
 import pandas as pd
 from datetime import datetime
+import math
 
 def load_csv_to_staging(df: pd.DataFrame):
     """
@@ -21,43 +22,63 @@ def load_csv_to_staging(df: pd.DataFrame):
 
     # Validate columns before attempting insert
     cursor.execute("SHOW COLUMNS FROM stg_premier_league_raw")
-    db_columns = set(row[0] for row in cursor.fetchall())
-
+    db_columns = set(row[0] for row in cursor.fetchall()) 
     csv_columns = set(df.columns)
-
     missing = csv_columns - db_columns
     if missing:
         raise RuntimeError(f"CSV contains unknown columns: {', '.join(sorted(missing))}")
-        
+    
+    df['LoadTimestamp'] = datetime.now()
+ 
     cols = ', '.join([f"`{col}`" for col in df.columns])
     placeholders = ', '.join(['%s'] * len(df.columns))
     insert_sql = f"""
         INSERT INTO stg_premier_league_raw ({cols})
         VALUES ({placeholders})
     """
-
-    data = [tuple(row) for row in df.to_numpy()]
+        
+    # Manual clean on each value in each row
+    data = [clean_row(row) for row in df.to_numpy()]
+    # print("NaNs after clean_row:", sum(math.isnan(v) for r in data for v in r if isinstance(v, float)))
+       
     cursor.executemany(insert_sql, data)
+   
     conn.commit()
 
     cursor.close()
     conn.close()
+
+def clean_row(row):
+    return tuple(None if (isinstance(v, float) and math.isnan(v)) else v for v in row)
         
-def trigger_etl_job():
+def trigger_etl_job(file_hash):
+    if not file_hash:
+        raise RuntimeError("Missing file hash for duplicate detection.")
+
     conn = get_connection()
     cursor = conn.cursor(buffered=True)
     log_id = None
-
+        
     try:
+        # Duplicate detection
+        cursor.execute("""
+            SELECT COUNT(*) FROM ETLLog
+            WHERE FileHash = %s AND Status = 'Completed'
+        """, (file_hash,))
+        already_done = cursor.fetchone()[0]
+
+        if already_done > 0:
+            return "ETL aborted.\nThis file has already been processed."
+
         # Step 0: Insert ETLLog entry
         start_time = datetime.now()
         cursor.execute("""
-            INSERT INTO ETLLog (ProcessName, StartTime, Status)
-            VALUES (%s, %s, %s)
-        """, ("GUI ETL Job", start_time, "Running"))
+            INSERT INTO ETLLog (ProcessName, StartTime, Status, FileHash)
+            VALUES (%s, %s, %s, %s)
+        """, ("GUI ETL Job", start_time, "Running", file_hash))
         log_id = cursor.lastrowid
         conn.commit()
-
+    
         summary = []
 
         # Step 1: Teams
@@ -243,6 +264,12 @@ def trigger_etl_job():
         cursor.executemany(insert_market_sql, market_data)
         conn.commit()
         summary.append(f"{len(market_data)} market definitions inserted.")
+
+        # Over/Under column mapping (moved up so it’s available)
+        ou_map = {
+            "Bet365": ("B365_2_5O", "B365_2_5U"),
+            "Pinnacle Sports": ("P_2_5O", "P_2_5U")
+        }
                 
         # Step 9: Insert Bookmakers and fetch IDs
         bookmaker_map = {
@@ -260,17 +287,20 @@ def trigger_etl_job():
             WHERE NOT EXISTS (
                 SELECT 1 FROM Bookmakers WHERE BookmakerName = %s
             )
-        """
-        cursor.execute(insert_bookmaker_sql, (name.strip(), name.strip()))       
-        for name in bookmaker_map:
-            cursor.execute(insert_bookmaker_sql, (name,))
+        """   
+        all_bookmakers = set(bookmaker_map) | set(ou_map)    
+        for name in all_bookmakers:
+            cursor.execute(insert_bookmaker_sql, (name.strip(), name.strip()))
         conn.commit()
     
         # Get IDs
         bookmaker_ids = {}
-        for name in bookmaker_map:
-            cursor.execute("SELECT BookmakerID FROM Bookmakers WHERE BookmakerName = %s", (name,))
-            bookmaker_ids[name] = cursor.fetchone()[0]
+        for name in all_bookmakers:
+            cursor.execute("SELECT BookmakerID FROM Bookmakers WHERE BookmakerName = %s", (name.strip(),))
+            row = cursor.fetchone()
+            if not row:
+                raise RuntimeError(f"Bookmaker '{name}' not found.")
+            bookmaker_ids[name] = row[0]
 
         # Step 10: Get MarketID for 1X2 FullTime
         cursor.execute("""
@@ -329,12 +359,6 @@ def trigger_etl_job():
         if not row:
             raise RuntimeError("Over/Under 2.5 market not found in Markets table.")
         ou_market_id = row[0]
-
-        # Bookmaker to columns mapping
-        ou_map = {
-            "Bet365": ("B365_2_5O", "B365_2_5U"),
-            "Pinnacle Sports": ("P_2_5O", "P_2_5U")
-        }
 
         # Build SELECT dynamically
         all_columns = ["MatchID"]
@@ -843,6 +867,40 @@ def deduplicate_bookmakers():
     except Exception as e:
         conn.rollback()
         raise RuntimeError(f"Error during bookmaker cleanup: {str(e)}")
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_over_under_probability_data(season_name, bookmaker_name):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT 
+                bo.OverOdds,
+                bo.UnderOdds,
+                (m.FTHG + m.FTAG) AS TotalGoals
+            FROM (
+                SELECT 
+                    bo.MatchID,
+                    MAX(CASE WHEN bo.OutcomeCode = 'Over' THEN bo.OddsValue END) AS OverOdds,
+                    MAX(CASE WHEN bo.OutcomeCode = 'Under' THEN bo.OddsValue END) AS UnderOdds
+                FROM BettingOdds bo
+                JOIN Bookmakers b ON b.BookmakerID = bo.BookmakerID
+                JOIN Markets mk ON mk.MarketID = bo.MarketID
+                WHERE b.BookmakerName = %s
+                  AND mk.MarketType = 'OverUnder'
+                  AND mk.MarketSubtype = 'FullTime'
+                  AND mk.Parameter = '2.5'
+                GROUP BY bo.MatchID
+            ) bo
+            JOIN Matches m ON m.MatchID = bo.MatchID
+            JOIN Seasons s ON s.SeasonID = m.SeasonID
+            WHERE s.SeasonName = %s
+              AND bo.OverOdds IS NOT NULL
+              AND bo.UnderOdds IS NOT NULL
+        """, (bookmaker_name, season_name))
+        return cursor.fetchall()
     finally:
         cursor.close()
         conn.close()

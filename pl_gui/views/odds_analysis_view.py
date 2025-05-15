@@ -35,18 +35,28 @@ class OddsAnalysisView(QWidget):
         self.layout.addWidget(QLabel("Select Bookmaker:"))
         self.layout.addWidget(self.bookmaker_selector)
 
+        # Chart type
         self.chart_type_selector = QComboBox()
         self.chart_type_selector.addItems([
             "Implied Probability vs Result",
             "Bookmaker Margin",
             "Margin Distribution",
-            "Compare Bookmaker Margins"
+            "Compare Bookmaker Margins",
+            "Over / Under 2.5 - Implied vs Actual"
         ])
+        self.chart_type_selector.currentIndexChanged.connect(self.update_ou_visibility)
         self.layout.addWidget(QLabel("Chart Type:"))
         self.layout.addWidget(self.chart_type_selector)
 
+        # Target
+        self.ou_target_selector = QComboBox()
+        self.ou_target_selector.addItems(["Over", "Under"])
+        self.ou_target_label = QLabel("Target Outcome:")
+        self.layout.addWidget(self.ou_target_label)
+        self.layout.addWidget(self.ou_target_selector)        
+
         # Generate
-        self.generate_button = QPushButton("Generate")
+        self.generate_button = QPushButton("Generate Chart")
         self.generate_button.clicked.connect(self.generate_chart)
         self.layout.addWidget(self.generate_button)
 
@@ -60,6 +70,13 @@ class OddsAnalysisView(QWidget):
         self.export_button.setEnabled(False)
         self.export_button.clicked.connect(self.export_data)
         self.layout.addWidget(self.export_button)
+
+        self.bookmaker_selector.currentIndexChanged.connect(self.mark_generate_outdated)
+        self.season_selector.currentIndexChanged.connect(self.mark_generate_outdated)
+        self.chart_type_selector.currentIndexChanged.connect(self.mark_generate_outdated)
+        self.ou_target_selector.currentIndexChanged.connect(self.mark_generate_outdated)
+        
+        self.update_ou_visibility()
 
         self.latest_data = None
         self.last_export_dir = None
@@ -181,12 +198,85 @@ class OddsAnalysisView(QWidget):
             ax.set_ylabel("Average Margin (%)")
             ax.set_xlabel("Bookmaker")
             ax.grid(axis='y', linestyle='--', linewidth=0.5)
-           
+
+        elif chart_mode == "Over / Under 2.5 - Implied vs Actual":
+            from models.etl_model import get_over_under_probability_data
+            rows = get_over_under_probability_data(season, bookmaker)
+            if not rows:
+                QMessageBox.information(self, "No Data", "No Over / Under data found for this bookmaker and season.")
+                return
+
+            implied_over = []
+            actual_over = []
+
+            for row in rows:
+                over_odds = row["OverOdds"]
+                under_odds = row["UnderOdds"]
+                if not over_odds or not under_odds or over_odds <= 1.01 or under_odds <= 1.01:
+                    continue
+
+                # Normalized implied probs
+                inv_sum = (1 / over_odds + 1 / under_odds)
+ 
+                target = self.ou_target_selector.currentText()
+                prob_over = (1 / over_odds) / inv_sum
+                prob_under = (1 / under_odds) / inv_sum
+
+                if target == "Over":
+                    implied = prob_over
+                    actual = 1 if row["TotalGoals"] >= 3 else 0
+                else:
+                    implied = prob_under
+                    actual = 1 if row["TotalGoals"] <= 2 else 0
+
+                implied_over.append(implied)
+                actual_over.append(actual)
+
+            if not implied_over:
+                QMessageBox.information(self, "No Valid Data", "No valid odds rows available.")
+                return
+
+            # Bin implied probabilities (e.g., 0.40-0.45, 0.45-0.50, etc.)
+            bins = np.arange(0.35, 0.81, 0.05)
+            bin_centers = bins[:-1] + 0.025
+            binned_implied = []
+            binned_actual = []
+
+            for i in range(len(bins) - 1):
+                bin_probs = [
+                    (implied_over[j], actual_over[j])
+                    for j in range(len(implied_over))
+                    if bins[i] <= implied_over[j] < bins[i + 1]
+                ]
+                if bin_probs:
+                    avg_p = np.mean([p for p, _ in bin_probs])
+                    actual_rate = np.mean([a for _, a in bin_probs])
+                    binned_implied.append(avg_p * 100)
+                    binned_actual.append(actual_rate * 100)
+                else:
+                    binned_implied.append(0)
+                    binned_actual.append(0)
+
+            self.figure.clear()
+            ax = self.figure.add_subplot(111)
+            width = 0.035
+
+            ax.bar(bin_centers - width, binned_implied, width=0.035, label="Implied Over %", color='gray')
+            ax.bar(bin_centers + width, binned_actual, width=0.035, label="Actual Over %", color='blue')
+
+            ax.set_xticks(bin_centers)
+            ax.set_xticklabels([f"{int(p*100)}%" for p in bin_centers])
+            ax.set_title(f"{bookmaker} — {target} 2.5: Implied vs Actual ({season})")
+            ax.set_ylabel("Percentage")
+            ax.set_xlabel(f"Implied {target} Probability Bin")
+            ax.legend()
+               
         self.figure.tight_layout()
         self.canvas.draw()
 
         self.latest_data = data
         self.export_button.setEnabled(True)
+        self.clear_generate_flag()
    
     def export_data(self):
         if not self.latest_data:
@@ -229,3 +319,18 @@ class OddsAnalysisView(QWidget):
 
         except Exception as e:
             QMessageBox.critical(self, "Export Failed", str(e))
+
+    def update_ou_visibility(self):
+        show = self.chart_type_selector.currentText().startswith("Over / Under")
+        self.ou_target_label.setVisible(show)
+        self.ou_target_selector.setVisible(show)
+ 
+ 
+    def mark_generate_outdated(self):
+        self.generate_button.setText("Generate Chart (Outdated)")
+        self.generate_button.setStyleSheet("font-weight: bold; color: darkred;")
+
+    def clear_generate_flag(self):
+        self.generate_button.setText("Generate Chart")
+        self.generate_button.setStyleSheet("")
+   
