@@ -5,6 +5,8 @@
 # Instructor: Ronald Mak ron.mak@sjsu.edu
 # Student: Luca Severini 008879273 luca.severini@sjsu.edu
 
+# main.py
+
 import sys
 import signal
 from PyQt5.QtWidgets import QApplication
@@ -12,6 +14,7 @@ from PyQt5.QtCore import QTimer
 from views.main_window import MainWindow
 from views.league_table_view import LeagueTableView
 from data201 import BOLD, RESET
+from db.connection import get_connection
 
 def handle_interrupt():
     print(f"{BOLD}\nProgram interrupted.{RESET}")

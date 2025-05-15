@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QMainWindow, QAction, QMenu, QApplication
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QLineEdit, QLabel
 from PyQt5.QtWidgets import QComboBox, QMessageBox
-from PyQt5.QtWidgets import QWidget, QInputDialog
+from PyQt5.QtWidgets import QWidget, QInputDialog, QFileDialog
 from views.league_table_view import LeagueTableView
 from views.etl_control_view import ETLControlView
 from models.etl_model import clean_all_tables, has_season_data, clear_etl_logs
@@ -22,9 +22,11 @@ from views.team_trend_view import TeamTrendView
 from views.odds_analysis_view import OddsAnalysisView
 from dialogs.user_management_dialog import UserManagementDialog
 from dialogs.login_dialog import LoginDialog
-from db.connection import get_connection
+from db.connection import get_connection, get_db_config
 import hashlib
 import sys
+import subprocess
+from datetime import datetime
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -32,6 +34,9 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Premier League DB Manager")
 
         self.menu = self.menuBar()
+
+        # Just to check if the DB connection works
+        get_connection()
         
         self.current_widget = None
         
@@ -49,7 +54,7 @@ class MainWindow(QMainWindow):
         self.league_action = QAction("League Table", self)
         self.league_action.triggered.connect(self.show_league_table)
         self.view_menu.addAction(self.league_action)
-        self.league_action.setEnabled(has_season_data())
+        # self.league_action.setEnabled(has_season_data())
 
         self.etl_action = QAction("ETL Control", self)
         self.etl_action.triggered.connect(self.show_etl_control)
@@ -85,6 +90,14 @@ class MainWindow(QMainWindow):
         self.dedup_bookmakers_action.triggered.connect(self.fix_duplicate_bookmakers)
         self.util_menu.addAction(self.dedup_bookmakers_action)
 
+        self.snapshot_save_action = QAction("Save DB Snapshot", self)
+        self.snapshot_save_action.triggered.connect(self.save_snapshot)
+        self.util_menu.addAction(self.snapshot_save_action)
+
+        self.snapshot_restore_action = QAction("Restore DB Snapshot", self)
+        self.snapshot_restore_action.triggered.connect(self.restore_snapshot)
+        self.util_menu.addAction(self.snapshot_restore_action)
+
         self.util_menu.setEnabled(self.role in ["admin", "manager"])
 
         # Admin-only menu
@@ -93,7 +106,7 @@ class MainWindow(QMainWindow):
             self.user_mgmt_action = QAction("User Management", self)
             self.user_mgmt_action.triggered.connect(self.open_user_management)
             self.admin_menu.addAction(self.user_mgmt_action)
-             
+                       
         if has_season_data():
             self.show_league_table()
         else:
@@ -123,7 +136,6 @@ class MainWindow(QMainWindow):
             try:
                 clean_all_tables()
                 QMessageBox.information(self, "Success", "All relevant tables have been cleaned.")
-                self.league_action.setEnabled(False)
                 # Close League Table view if currently visible
                 if isinstance(self.current_widget, LeagueTableView):
                     self.setCentralWidget(QWidget())  # replace with empty widget
@@ -221,3 +233,78 @@ class MainWindow(QMainWindow):
         dlg = UserManagementDialog(self)
         dlg.exec_()
 
+    def save_snapshot(self):
+        conn = get_connection()
+        db_name = conn.database
+        conn.close()
+        
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        default_name = f"DB_Snapshot_{timestamp}.sql"
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save DB Snapshot",
+            default_name,
+            "SQL Files (*.sql)"
+        )
+        if not file_path:
+            return
+
+        try:
+            config = get_db_config()
+            cmd = [
+                "mysqldump",
+                f"-h{config['host']}",
+                f"-P{config['port']}",
+                f"-u{config['user']}",
+                f"-p{config['password']}",
+                config['database'],
+            ]
+            with open(file_path, "w") as f:
+                subprocess.run(cmd, stdout=f, check=True)
+            QMessageBox.information(self, "Success", f"Snapshot saved to:\n{file_path}")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Snapshot Error", str(e))
+
+    def restore_snapshot(self):
+        conn = get_connection()
+        db_name = conn.database
+        conn.close()
+
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Restore DB Snapshot", "", "SQL Files (*.sql)"
+        )
+        if not file_path:
+            return
+
+        confirm = QMessageBox.question(
+            self,
+            "Confirm Restore",
+            f"This will overwrite all data in '{db_name}'. Continue?",
+            QMessageBox.Yes | QMessageBox.No,
+        )
+        if confirm != QMessageBox.Yes:
+            return
+
+        try:
+            config = get_db_config()
+            cmd = [
+                "mysql",
+                f"-h{config['host']}",
+                f"-P{config['port']}",
+                f"-u{config['user']}",
+                f"-p{config['password']}",
+                config['database'],
+            ]
+            with open(file_path, "r") as f:
+                subprocess.run(cmd, stdin=f, check=True)
+            QMessageBox.information(self, "Restored", f"Snapshot loaded from:\n{file_path}")
+        
+            if has_season_data():
+                self.show_league_table()
+            else:
+                self.show_etl_control()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Restore Error", str(e))

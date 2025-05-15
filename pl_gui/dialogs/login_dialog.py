@@ -60,14 +60,14 @@ class LoginDialog(QDialog):
         conn.close()
 
         if not row:
-            QMessageBox.critical(self, "Login Failed", "User not found.")
+            QMessageBox.critical(self, "Login Failed", f"User {username} not found.")
             return
 
         hash_pw, role = row
         hash_entered = hashlib.sha256(password.encode()).hexdigest()
 
         if hash_pw != hash_entered:
-            QMessageBox.critical(self, "Login Failed", "Invalid password.")
+            QMessageBox.critical(self, "Login Failed", f"Invalid password for {username}.")
             return
 
         self.username = username
