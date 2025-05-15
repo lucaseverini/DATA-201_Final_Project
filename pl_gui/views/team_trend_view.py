@@ -89,12 +89,13 @@ class TeamTrendView(QWidget):
         self.canvas = FigureCanvas(self.figure)
         self.layout.addWidget(self.canvas, stretch=1)
 
-        # Export buttons
+        # Export Chart
         self.export_button = QPushButton("Export Chart")
         self.export_button.setEnabled(False)
         self.export_button.clicked.connect(self.export_chart)
         self.layout.addWidget(self.export_button)
 
+        # Export Data
         self.export_data_button = QPushButton("Export Data (CSV)")
         self.export_data_button.setEnabled(False)
         self.export_data_button.clicked.connect(self.export_data)

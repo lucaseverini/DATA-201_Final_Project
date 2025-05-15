@@ -11,12 +11,16 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QLabel
 from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QMessageBox
 from db.connection import get_connection
+from db.git import get_git_version
 import hashlib
 
 class LoginDialog(QDialog):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Login to Premier League DB Manager")
+        
+        version = get_git_version()
+        self.setWindowTitle(f"Premier League DB Manager (v. 0.{version})")
+
         self.setFixedSize(350, 200)
         self.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
 

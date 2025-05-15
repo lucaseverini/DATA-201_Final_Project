@@ -65,11 +65,17 @@ class OddsAnalysisView(QWidget):
         self.canvas = FigureCanvas(self.figure)
         self.layout.addWidget(self.canvas, stretch=1)
 
-        # Export
-        self.export_button = QPushButton("Export Data (CSV)")
-        self.export_button.setEnabled(False)
-        self.export_button.clicked.connect(self.export_data)
-        self.layout.addWidget(self.export_button)
+        # Export Chart
+        self.export_chart_button = QPushButton("Export Chart")
+        self.export_chart_button.setEnabled(False)
+        self.export_chart_button.clicked.connect(self.export_chart)
+        self.layout.addWidget(self.export_chart_button)
+
+        # Export Data
+        self.export_data_button = QPushButton("Export Data (CSV)")
+        self.export_data_button.setEnabled(False)
+        self.export_data_button.clicked.connect(self.export_data)
+        self.layout.addWidget(self.export_data_button)
 
         self.bookmaker_selector.currentIndexChanged.connect(self.mark_generate_outdated)
         self.season_selector.currentIndexChanged.connect(self.mark_generate_outdated)
@@ -80,6 +86,7 @@ class OddsAnalysisView(QWidget):
 
         self.latest_data = None
         self.last_export_dir = None
+        self.export_mode = None
 
     def generate_chart(self):
         season = self.season_selector.currentText()
@@ -131,6 +138,7 @@ class OddsAnalysisView(QWidget):
             ax.set_ylabel("Percentage")
             ax.set_title(f"{bookmaker} — Implied vs Actual Outcome Rates ({season})")
             ax.legend()
+            self.export_mode = "Probability_vs_result"
 
         elif chart_mode == "Bookmaker Margin":
             margins = []
@@ -153,6 +161,7 @@ class OddsAnalysisView(QWidget):
             ax.set_ylabel("Bookmaker Margin (%)")
             ax.set_xlabel("Match Index")
             ax.legend()
+            self.export_mode = "Bookmaker_margin"
  
         elif chart_mode == "Margin Distribution":
             margins = []
@@ -174,6 +183,7 @@ class OddsAnalysisView(QWidget):
             ax.set_xlabel("Margin (%)")
             ax.set_ylabel("Match Count")
             ax.legend()
+            self.export_mode = "Margin_distrib"
  
         elif chart_mode == "Compare Bookmaker Margins":
             margins = get_avg_margins_per_bookmaker(season)
@@ -198,6 +208,7 @@ class OddsAnalysisView(QWidget):
             ax.set_ylabel("Average Margin (%)")
             ax.set_xlabel("Bookmaker")
             ax.grid(axis='y', linestyle='--', linewidth=0.5)
+            self.export_mode = "Compare_margins"
 
         elif chart_mode == "Over / Under 2.5 - Implied vs Actual":
             from models.etl_model import get_over_under_probability_data
@@ -270,13 +281,67 @@ class OddsAnalysisView(QWidget):
             ax.set_ylabel("Percentage")
             ax.set_xlabel(f"Implied {target} Probability Bin")
             ax.legend()
+            self.export_mode = "Over_Under_2.5_Implied_vs_Actual"
                
         self.figure.tight_layout()
         self.canvas.draw()
 
         self.latest_data = data
-        self.export_button.setEnabled(True)
+        self.export_data_button.setEnabled(True)
+        self.export_chart_button.setEnabled(True)
         self.clear_generate_flag()
+
+    def export_chart(self):
+        season = self.season_selector.currentText().replace("/", "-")
+        bookmaker = self.bookmaker_selector.currentText().replace(" ", "_")
+        base_name = f"OddsData_{self.export_mode}_{bookmaker}_{season}"
+ 
+        # Determine fallback folder
+        if self.last_export_dir and os.path.isdir(self.last_export_dir):
+            initial_dir = self.last_export_dir
+        else:
+            try:
+                initial_dir = os.getcwd()
+                if not os.access(initial_dir, os.W_OK):
+                    raise PermissionError
+            except Exception:
+                # Fallback to desktop
+                initial_dir = os.path.join(os.path.expanduser("~"), "Desktop")
+
+        default_file = os.path.join(initial_dir, base_name)
+    
+        file_path, selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "Save Chart As...",
+            default_file,
+            "PNG Image (*.png);;JPEG Image (*.jpg);;PDF File (*.pdf)"
+        )
+
+        if not file_path:
+            return  # user cancelled
+            
+        self.last_export_dir = os.path.dirname(file_path)
+
+        # Determine extension based on selected filter
+        if "PNG" in selected_filter:
+            ext = ".png"
+        elif "JPEG" in selected_filter:
+            ext = ".jpg"
+        elif "PDF" in selected_filter:
+            ext = ".pdf"
+        else:
+            ext = ".png"
+
+        # Add extension if not present
+        if not file_path.lower().endswith(ext):
+            file_path += ext
+
+        try:
+            self.figure.savefig(file_path)
+            QMessageBox.information(self, "Export Successful", f"Chart saved to:\n{file_path}")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Export Failed", f"Could not save chart:\n{str(e)}")
    
     def export_data(self):
         if not self.latest_data:
@@ -285,7 +350,7 @@ class OddsAnalysisView(QWidget):
 
         season = self.season_selector.currentText().replace("/", "-")
         bookmaker = self.bookmaker_selector.currentText().replace(" ", "_")
-        default_name = f"OddsData_{bookmaker}_{season}.csv"
+        default_name = f"OddsData_{self.export_mode}_{bookmaker}_{season}.csv"
 
         folder = self.last_export_dir or os.getcwd()
         file_path, _ = QFileDialog.getSaveFileName(

@@ -23,6 +23,7 @@ from views.odds_analysis_view import OddsAnalysisView
 from dialogs.user_management_dialog import UserManagementDialog
 from dialogs.login_dialog import LoginDialog
 from db.connection import get_connection, get_db_config
+from db.git import get_git_version
 import hashlib
 import sys
 import subprocess
@@ -31,7 +32,9 @@ from datetime import datetime
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Premier League DB Manager")
+        
+        version = get_git_version()
+        self.setWindowTitle(f"Premier League DB Manager (v. 0.{version})")
 
         self.menu = self.menuBar()
 
@@ -120,7 +123,8 @@ class MainWindow(QMainWindow):
         self.current_widget = widget
         self.setCentralWidget(widget)
 
-        title = "Premier League DB Manager"
+        version = get_git_version()
+        title = f"Premier League DB Manager (v. 0.{version})"
         if view_name:
             title += f" — {view_name}"
         self.setWindowTitle(title)
