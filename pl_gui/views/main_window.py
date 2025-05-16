@@ -115,7 +115,8 @@ class MainWindow(QMainWindow):
         else:
             self.show_etl_control()
             
-        self.resize(1200, 700)
+        self.resize(1400, 800)
+        self.center_on_screen()
 
     def set_central_widget(self, widget, view_name=None):
         if self.current_widget:
@@ -128,7 +129,13 @@ class MainWindow(QMainWindow):
         if view_name:
             title += f" — {view_name}"
         self.setWindowTitle(title)
-            
+
+    def center_on_screen(self):
+        frame = self.frameGeometry()
+        screen = QApplication.primaryScreen().availableGeometry().center()
+        frame.moveCenter(screen)
+        self.move(frame.topLeft())
+                
     def clean_tables(self):
         reply = QMessageBox.question(
             self,
