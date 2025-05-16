@@ -51,6 +51,12 @@ class MainWindow(QMainWindow):
         self.username = login_dialog.username
         self.role = login_dialog.role
         
+        # Info menu
+        self.info_menu = self.menu.addMenu("Info")
+        about_action = QAction("About", self)
+        about_action.triggered.connect(self.show_about_dialog)
+        self.info_menu.addAction(about_action)
+
         # Views menu
         self.view_menu = self.menu.addMenu("Views")
 
@@ -100,7 +106,6 @@ class MainWindow(QMainWindow):
         self.snapshot_restore_action = QAction("Restore DB Snapshot", self)
         self.snapshot_restore_action.triggered.connect(self.restore_snapshot)
         self.util_menu.addAction(self.snapshot_restore_action)
-
         self.util_menu.setEnabled(self.role in ["admin", "manager"])
 
         # Admin-only menu
@@ -196,6 +201,21 @@ class MainWindow(QMainWindow):
     def show_odds_analysis(self):
         self.set_central_widget(OddsAnalysisView(), "Odds Analysis")
 
+    def show_about_dialog(self):
+        from PyQt5.QtWidgets import QMessageBox
+
+        version = get_git_version()
+        
+        text = (
+            "<b>Premier League DB Manager</b><br>"
+            f"Version: <tt>{version}</tt><br><br>"
+            "Final Project — DATA 201-21<br>"
+            "Author: Schema Squad<br><br>"
+            "This program manages and analyzes Premier League match data, "
+            "including statistics, betting odds, and visualizations."
+        )
+        QMessageBox.information(self, "About", text)
+    
     def fix_duplicate_bookmakers(self):
         reply = QMessageBox.question(
             self,
