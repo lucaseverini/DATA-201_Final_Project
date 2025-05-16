@@ -904,3 +904,47 @@ def get_over_under_probability_data(season_name, bookmaker_name):
     finally:
         cursor.close()
         conn.close()
+
+def fetch_league_table(season=None):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    sql = "SELECT * FROM vw_LeagueTable"
+    if season:
+        sql += " WHERE SeasonName = %s"
+        cursor.execute(sql, (season,))
+    else:
+        cursor.execute(sql)
+
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return results
+
+def get_league_table_data(season_name):
+    """
+    Return a list of team standings (dicts) for the given season.
+    """
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+            SELECT TeamName AS Team,
+                   Played,
+                   Won,
+                   Drawn,
+                   Lost,
+                   GF,
+                   GA,
+                   GD AS GoalDifference,
+                   Points
+            FROM vw_LeagueTable
+            WHERE SeasonName = %s
+            ORDER BY Points DESC, GoalDifference DESC, GF DESC
+        """, (season_name,))
+        return cursor.fetchall()
+
+    finally:
+        cursor.close()
+        conn.close()

@@ -9,8 +9,8 @@
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QTableWidget
 from PyQt5.QtWidgets import QTableWidgetItem, QLabel, QComboBox, QMessageBox
-from controllers.league_table_controller import get_league_table
-from models.etl_model import get_all_seasons
+from PyQt5.QtWidgets import QSizePolicy, QHeaderView
+from models.etl_model import get_all_seasons, fetch_league_table
 
 class LeagueTableView(QWidget):
     def __init__(self):
@@ -25,9 +25,12 @@ class LeagueTableView(QWidget):
         self.season_selector.currentIndexChanged.connect(self.load_data)
 
         self.table = QTableWidget()
+        self.table.setMinimumSize(0, 0)
+        self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.layout.addWidget(QLabel("Select Season:"))
         self.layout.addWidget(self.season_selector)
-        self.layout.addWidget(self.table)
+        self.layout.addWidget(self.table, stretch = 1)
 
         self.load_data()
         self.resize(1000, 600)
@@ -35,9 +38,9 @@ class LeagueTableView(QWidget):
     def load_data(self):
         season = self.season_selector.currentText()
         if season == "All Seasons":
-            data = get_league_table()
+            data = fetch_league_table()
         else:
-            data = get_league_table(season)
+            data = fetch_league_table(season)
 
         if not data:
             QMessageBox.warning(self, "No Data", f"No data available for season: {season}")
@@ -66,4 +69,4 @@ class LeagueTableView(QWidget):
 
         final_width = min(total_width, max_width)
         self.resize(final_width, total_height)
-    
+ 
