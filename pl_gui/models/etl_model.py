@@ -3,7 +3,7 @@
 # Final project (May-23-2025)
 # Class: DATA 201-21
 # Instructor: Ronald Mak ron.mak@sjsu.edu
-# Student: Luca Severini 008879273 luca.severini@sjsu.edu
+# Students: Schema Squad
 
 # models/etl_model.py
 
@@ -22,8 +22,13 @@ def load_csv_to_staging(df: pd.DataFrame):
 
     # Validate columns before attempting insert
     cursor.execute("SHOW COLUMNS FROM stg_premier_league_raw")
-    db_columns = set(row[0] for row in cursor.fetchall()) 
+    db_columns = set(row[0] for row in cursor.fetchall())
+    
     csv_columns = set(df.columns)
+ 
+    # print(f"db_columns:\n{db_columns}")
+    # print(f"csv_columns:\n{csv_columns}")
+      
     missing = csv_columns - db_columns
     if missing:
         raise RuntimeError(f"CSV contains unknown columns: {', '.join(sorted(missing))}")
@@ -97,6 +102,7 @@ def trigger_etl_job(file_hash):
         summary.append(f"{len(data)} team records processed.")
 
         # Step 2: Seasons
+        '''
         cursor.execute("SELECT MIN(Date), MAX(Date) FROM stg_premier_league_raw")
         min_date, max_date = cursor.fetchone()
         sy, ey = min_date.year % 100, max_date.year % 100
@@ -106,7 +112,57 @@ def trigger_etl_job(file_hash):
             VALUES (%s, %s, %s)
         """, (season_name, min_date, max_date))
         summary.append(f"Season '{season_name}' inserted or already present.")
+        '''
+        '''
+        # Step 2: Seasons
+        cursor.execute("""
+            SELECT MIN(Date), MAX(Date) FROM stg_premier_league_raw 
+            WHERE FileHash = %s
+        """, (file_hash,))
+        min_date, max_date = cursor.fetchone()
+        sy, ey = min_date.year % 100, max_date.year % 100
+        season_name = f"{sy:02d}-{ey:02d}"
+        '''
+        
+        # Step 2: Seasons
+        cursor.execute("""
+            SELECT MIN(Date), MAX(Date) FROM stg_premier_league_raw 
+            WHERE FileHash = %s
+        """, (file_hash,))
+        result = cursor.fetchone()
 
+        # Check if we got valid dates
+        if result[0] is None or result[1] is None:
+            # No results found with this file_hash, fall back to getting the most recent season
+            cursor.execute("SELECT SeasonID, SeasonName FROM Seasons ORDER BY EndDate DESC LIMIT 1")
+            existing_season = cursor.fetchone()
+            if existing_season:
+                season_id, season_name = existing_season
+                summary.append(f"Using existing season '{season_name}'.")
+            else:
+                # If no seasons exist, create a default one based on current year
+                current_year = datetime.now().year
+                sy, ey = current_year % 100, (current_year + 1) % 100
+                season_name = f"{sy:02d}-{ey:02d}"
+                start_date = f"{current_year}-08-01"  # August 1st of current year
+                end_date = f"{current_year + 1}-05-31"  # May 31st of next year
+                cursor.execute("""
+                    INSERT INTO Seasons (SeasonName, StartDate, EndDate)
+                    VALUES (%s, %s, %s)
+                """, (season_name, start_date, end_date))
+                summary.append(f"Created default season '{season_name}'.")
+        else:
+            min_date, max_date = result
+            sy, ey = min_date.year % 100, max_date.year % 100
+            season_name = f"{sy:02d}-{ey:02d}"
+    
+            # Now insert the season if it doesn't exist
+            cursor.execute("""
+                INSERT IGNORE INTO Seasons (SeasonName, StartDate, EndDate)
+                VALUES (%s, %s, %s)
+            """, (season_name, min_date, max_date))
+            summary.append(f"Season '{season_name}' inserted or already present.")
+    
         # Step 3: Referees
         cursor.execute("""
             SELECT DISTINCT Referee
@@ -945,6 +1001,11 @@ def get_league_table_data(season_name):
         """, (season_name,))
         return cursor.fetchall()
 
+    except:
+        cursor.close()
+        conn.close()
+        return []
+        
     finally:
         cursor.close()
         conn.close()

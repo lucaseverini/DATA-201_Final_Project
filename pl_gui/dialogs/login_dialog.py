@@ -3,7 +3,7 @@
 # Final project (May-23-2025)
 # Class: DATA 201-21
 # Instructor: Ronald Mak ron.mak@sjsu.edu
-# Student: Luca Severini 008879273 luca.severini@sjsu.edu
+# Students: Schema Squad
 
 # dialogs/login_dialog.py
 
@@ -56,12 +56,21 @@ class LoginDialog(QDialog):
             QMessageBox.warning(self, "Missing Info", "Please enter username and password.")
             return
 
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT PasswordHash, Role FROM Users WHERE Username = %s", (username,))
-        row = cursor.fetchone()
+        row = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT PasswordHash, Role FROM Users WHERE Username = %s", (username,))
+            row = cursor.fetchone()
+            
+        except Exception as e:
+             cursor.close()
+             conn.close()            
+             QMessageBox.critical(self, "Login Failed", f"DB Error:\n{e}.")
+             return
+             
         cursor.close()
-        conn.close()
+        conn.close()            
 
         if not row:
             QMessageBox.critical(self, "Login Failed", f"User {username} not found.")

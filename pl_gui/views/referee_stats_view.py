@@ -3,7 +3,7 @@
 # Final project (May-23-2025)
 # Class: DATA 201-21
 # Instructor: Ronald Mak ron.mak@sjsu.edu
-# Student: Luca Severini 008879273 luca.severini@sjsu.edu
+# Students: Schema Squad
 
 # views/referee_stats_view.py
 

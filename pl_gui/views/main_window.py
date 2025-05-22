@@ -3,7 +3,7 @@
 # Final project (May-23-2025)
 # Class: DATA 201-21
 # Instructor: Ronald Mak ron.mak@sjsu.edu
-# Student: Luca Severini 008879273 luca.severini@sjsu.edu
+# Students: Schema Squad
 
 # views/main_window.py
 
@@ -233,32 +233,6 @@ class MainWindow(QMainWindow):
 
         except Exception as e:
             QMessageBox.critical(self, "Error", str(e))
- 
- 
-    def hash_password(password: str) -> str:
-        return hashlib.sha256(password.encode("utf-8")).hexdigest()
-
-    def authenticate_user(self):
-        username, ok1 = QInputDialog.getText(None, "Login", "Username:")
-        if not ok1 or not username:
-            return None, None
-        password, ok2 = QInputDialog.getText(None, "Login", "Password:", QInputDialog.Password)
-        if not ok2 or not password:
-            return None, None
-
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT PasswordHash, Role FROM Users WHERE Username = %s", (username,))
-        row = cursor.fetchone()
-        cursor.close()
-        conn.close()
-
-        if not row:
-            return None, None
-        hash_db, role = row
-        if hash_password(password) == hash_db:
-            return username, role
-        return None, None      
          
     def open_user_management(self):
         dlg = UserManagementDialog(self)
