@@ -967,10 +967,9 @@ def fetch_league_table(season=None):
 
     sql = "SELECT * FROM vw_LeagueTable"
     if season:
-        sql += " WHERE SeasonName = %s"
-        cursor.execute(sql, (season,))
-    else:
-        cursor.execute(sql)
+        sql += f" WHERE SeasonName = '{season}'"
+ 
+    cursor.execute(sql)
 
     results = cursor.fetchall()
     cursor.close()

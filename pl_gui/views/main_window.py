@@ -44,12 +44,16 @@ class MainWindow(QMainWindow):
         self.current_widget = None
         
         # Login
+        '''
         login_dialog = LoginDialog()
         if login_dialog.exec_() != QDialog.Accepted:
             sys.exit(1)
-
+        
         self.username = login_dialog.username
         self.role = login_dialog.role
+        '''
+        self.username = 'Admin'
+        self.role = 'admin'
         
         # Info menu
         self.info_menu = self.menu.addMenu("Info")
