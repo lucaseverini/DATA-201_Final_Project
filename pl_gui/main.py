@@ -24,9 +24,10 @@ def handle_interrupt():
 def main():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     app = QApplication(sys.argv)
-    app.setApplicationName("Premier League DB Manager")  # 👈 correct name
+    app.setApplicationName("Premier League DB Manager")
     signal.signal(signal.SIGINT, lambda sig, frame: handle_interrupt())
 
+    # Dummy timer to keep the Qt event loop alive and processing events
     timer = QTimer()
     timer.start(100)
     timer.timeout.connect(lambda: None)

@@ -1,0 +1,125 @@
+Original Column,Normalized Column,Description
+AC,AC,Away Corners
+AF,AF,Away Fouls
+AHCh,AHCh,Number of bookmakers providing Asian Handicap odds
+AHh,AHh,Asian Handicap goal line (numeric value)
+AR,AR,Away Red Cards
+AS,AS,Away Shots
+AST,AST,Away Shots on Target
+Avg<2.5,AvgU2.5,Average opening odds for Under 2.5 goals (aggregated)
+Avg>2.5,AvgO2.5,Average opening odds for Over 2.5 goals (aggregated)
+AvgA,AvgA,Average across all bookmakers; Away win odds
+AvgAHA,AvgAHA,Asian Handicap; Average across all bookmakers; Asian Handicap Away odds; Handicap line
+AvgAHH,AvgAHH,Asian Handicap; Average across all bookmakers; Asian Handicap Home odds; Handicap line
+AvgC<2.5,AvgCU2.5,Average closing odds for Under 2.5 goals (aggregated)
+AvgC>2.5,AvgCO2.5,Average closing odds for Over 2.5 goals (aggregated)
+AvgCA,AvgCA,Closing Odds; Average across all bookmakers; Away win odds
+AvgCAHA,AvgCAHA,Asian Handicap; Closing Odds; Average across all bookmakers; Asian Handicap Away odds; Handicap line
+AvgCAHH,AvgCAHH,Asian Handicap; Closing Odds; Average across all bookmakers; Asian Handicap Home odds; Handicap line
+AvgCD,AvgCD,Closing Odds; Average across all bookmakers; Draw odds
+AvgCH,AvgCH,Closing Odds; Average across all bookmakers; Home win odds
+AvgD,AvgD,Average across all bookmakers; Draw odds
+AvgH,AvgH,Average across all bookmakers; Home win odds
+AwayTeam,AwayTeam,Name of away team
+AY,AY,Away Yellow Cards
+B365<2.5,B365_U2.5,Bet365 opening odds for Under 2.5 goals
+B365>2.5,B365_O2.5,Bet365 opening odds for Over 2.5 goals
+B365A,B365_A,Bet365; Away win odds
+B365AHA,B365_AHA,Asian Handicap; Bet365; Asian Handicap Away odds; Handicap line
+B365AHH,B365_AHH,Asian Handicap; Bet365; Asian Handicap Home odds; Handicap line
+B365C<2.5,B365_CU2.5,Bet365 closing odds for Under 2.5 goals
+B365C>2.5,B365_CO2.5,Bet365 closing odds for Over 2.5 goals
+B365CA,B365_CA,Closing Odds; Bet365; Away win odds
+B365CAHA,B365_CAHA,Asian Handicap; Closing Odds; Bet365; Asian Handicap Away odds; Handicap line
+B365CAHH,B365_CAHH,Asian Handicap; Closing Odds; Bet365; Asian Handicap Home odds; Handicap line
+B365CD,B365_CD,Closing Odds; Bet365; Draw odds
+B365CH,B365_CH,Closing Odds; Bet365; Home win odds
+B365D,B365_D,Bet365; Draw odds
+B365H,B365_H,Bet365; Home win odds
+Bb1X2,Bb1X2,Number of bookmakers offering 1X2 market (BetBrain)
+BbAH,BbAH,Number of bookmakers offering Asian Handicap (BetBrain)
+BbAHh,BbAHh,Asian Handicap goal line (BetBrain)
+BbAv<2.5,BbAvU2.5,Average odds for Under 2.5 goals (BetBrain)
+BbAv>2.5,BbAvO2.5,Average odds for Over 2.5 goals (BetBrain)
+BbAvA,BbAvA,Average odds for Away win (BetBrain)
+BbAvAHA,BbAvAHA,Average odds for Away Asian Handicap (BetBrain)
+BbAvAHH,BbAvAHH,Average odds for Home Asian Handicap (BetBrain)
+BbAvD,BbAvD,Average odds for Draw (BetBrain)
+BbAvH,BbAvH,Average odds for Home win (BetBrain)
+BbMx<2.5,BbMxU2.5,Maximum odds for Under 2.5 goals (BetBrain)
+BbMx>2.5,BbMxO2.5,Maximum odds for Over 2.5 goals (BetBrain)
+BbMxA,BbMxA,Maximum odds for Away win (BetBrain)
+BbMxAHA,BbMxAHA,Maximum odds for Away Asian Handicap (BetBrain)
+BbMxAHH,BbMxAHH,Maximum odds for Home Asian Handicap (BetBrain)
+BbMxD,BbMxD,Maximum odds for Draw (BetBrain)
+BbMxH,BbMxH,Maximum odds for Home win (BetBrain)
+BbOU,BbOU,Number of bookmakers offering Over/Under market (BetBrain)
+BWA,BW_A,Bet&Win; Away win odds
+BWCA,BW_CA,Closing Odds; Bet&Win; Away win odds
+BWCD,BW_CD,Closing Odds; Bet&Win; Draw odds
+BWCH,BW_CH,Closing Odds; Bet&Win; Home win odds
+BWD,BW_D,Bet&Win; Draw odds
+BWH,BW_H,Bet&Win; Home win odds
+Date,Date,Date of the match
+Div,Div,"Division (e.g., EPL = Premier League)"
+FTAG,FTAG,Full Time Away Goals
+FTHG,FTHG,Full Time Home Goals
+FTR,FTR,"Full Time Result (H=Home Win, D=Draw, A=Away Win)"
+HC,HC,Home Corners
+HF,HF,Home Fouls
+HomeTeam,HomeTeam,Name of home team
+HR,HR,Home Red Cards
+HS,HS,Home Shots
+HST,HST,Home Shots on Target
+HTAG,HTAG,Half Time Away Goals
+HTHG,HTHG,Half Time Home Goals
+HTR,HTR,"Half Time Result (H=Home Win, D=Draw, A=Away Win)"
+HY,HY,Home Yellow Cards
+IWA,IW_A,Interwetten; Away win odds
+IWCA,IW_CA,Closing Odds; Interwetten; Away win odds
+IWCD,IW_CD,Closing Odds; Interwetten; Draw odds
+IWCH,IW_CH,Closing Odds; Interwetten; Home win odds
+IWD,IW_D,Interwetten; Draw odds
+IWH,IW_H,Interwetten; Home win odds
+Max<2.5,MaxU2.5,Maximum opening odds for Under 2.5 goals
+Max>2.5,MaxO2.5,Maximum opening odds for Over 2.5 goals
+MaxA,MaxA,Maximum across all bookmakers; Away win odds
+MaxAHA,MaxAHA,Asian Handicap; Maximum across all bookmakers; Asian Handicap Away odds; Handicap line
+MaxAHH,MaxAHH,Asian Handicap; Maximum across all bookmakers; Asian Handicap Home odds; Handicap line
+MaxC<2.5,MaxCU2.5,Maximum closing odds for Under 2.5 goals
+MaxC>2.5,MaxCO2.5,Maximum closing odds for Over 2.5 goals
+MaxCA,MaxCA,Closing Odds; Maximum across all bookmakers; Away win odds
+MaxCAHA,MaxCAHA,Asian Handicap; Closing Odds; Maximum across all bookmakers; Asian Handicap Away odds; Handicap line
+MaxCAHH,MaxCAHH,Asian Handicap; Closing Odds; Maximum across all bookmakers; Asian Handicap Home odds; Handicap line
+MaxCD,MaxCD,Closing Odds; Maximum across all bookmakers; Draw odds
+MaxCH,MaxCH,Closing Odds; Maximum across all bookmakers; Home win odds
+MaxD,MaxD,Maximum across all bookmakers; Draw odds
+MaxH,MaxH,Maximum across all bookmakers; Home win odds
+P<2.5,P_U2.5,Pinnacle opening odds for Under 2.5 goals
+P>2.5,P_O2.5,Pinnacle opening odds for Over 2.5 goals
+PAHA,P_AHA,Asian Handicap; Pinnacle (possibly closing); Asian Handicap Away odds; Handicap line
+PAHH,P_AHH,Asian Handicap; Pinnacle (possibly closing); Asian Handicap Home odds; Handicap line
+PC<2.5,P_CU2.5,Pinnacle closing odds for Under 2.5 goals
+PC>2.5,P_CO2.5,Pinnacle closing odds for Over 2.5 goals
+PCAHA,P_CAHA,Asian Handicap; Closing Odds; Pinnacle (possibly closing); Asian Handicap Away odds; Handicap line
+PCAHH,P_CAHH,Asian Handicap; Closing Odds; Pinnacle (possibly closing); Asian Handicap Home odds; Handicap line
+PSA,PS_A,Pinnacle Sports; Away win odds
+PSCA,PS_CA,Closing Odds; Pinnacle Sports; Away win odds
+PSCD,PS_CD,Closing Odds; Pinnacle Sports; Draw odds
+PSCH,PS_CH,Closing Odds; Pinnacle Sports; Home win odds
+PSD,PS_D,Pinnacle Sports; Draw odds
+PSH,PS_H,Pinnacle Sports; Home win odds
+Referee,Referee,Match referee
+Time,Time,Kickoff time
+VCA,VC_A,VC Bet opening odds for Away win
+VCCA,VC_CA,VC Bet closing odds for Away win
+VCCD,VC_CD,VC Bet closing odds for Draw
+VCCH,VC_CH,VC Bet closing odds for Home win
+VCD,VC_D,VC Bet opening odds for Draw
+VCH,VC_H,VC Bet opening odds for Home win
+WHA,WH_A,William Hill; Away win odds
+WHCA,WH_CA,Closing Odds; William Hill; Away win odds
+WHCD,WH_CD,Closing Odds; William Hill; Draw odds
+WHCH,WH_CH,Closing Odds; William Hill; Home win odds
+WHD,WH_D,William Hill; Draw odds
+WHH,WH_H,William Hill; Home win odds

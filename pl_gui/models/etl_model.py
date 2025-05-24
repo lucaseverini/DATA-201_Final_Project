@@ -76,6 +76,8 @@ def trigger_etl_job(file_hash):
             return "ETL aborted.\nThis file has already been processed."
 
         # Step 0: Insert ETLLog entry
+        # print(f"Step 0: Insert ETLLog entry")
+        
         start_time = datetime.now()
         cursor.execute("""
             INSERT INTO ETLLog (ProcessName, StartTime, Status, FileHash)
@@ -87,6 +89,8 @@ def trigger_etl_job(file_hash):
         summary = []
 
         # Step 1: Teams
+        # print(f"Step 1: Teams")
+        
         cursor.execute("""
             SELECT DISTINCT HomeTeam FROM stg_premier_league_raw
             UNION
@@ -100,31 +104,10 @@ def trigger_etl_job(file_hash):
         data = [(team, team[:12]) for team in teams]
         cursor.executemany(insert_sql, data)
         summary.append(f"{len(data)} team records processed.")
-
-        # Step 2: Seasons
-        '''
-        cursor.execute("SELECT MIN(Date), MAX(Date) FROM stg_premier_league_raw")
-        min_date, max_date = cursor.fetchone()
-        sy, ey = min_date.year % 100, max_date.year % 100
-        season_name = f"{sy:02d}-{ey:02d}"
-        cursor.execute("""
-            INSERT IGNORE INTO Seasons (SeasonName, StartDate, EndDate)
-            VALUES (%s, %s, %s)
-        """, (season_name, min_date, max_date))
-        summary.append(f"Season '{season_name}' inserted or already present.")
-        '''
-        '''
-        # Step 2: Seasons
-        cursor.execute("""
-            SELECT MIN(Date), MAX(Date) FROM stg_premier_league_raw 
-            WHERE FileHash = %s
-        """, (file_hash,))
-        min_date, max_date = cursor.fetchone()
-        sy, ey = min_date.year % 100, max_date.year % 100
-        season_name = f"{sy:02d}-{ey:02d}"
-        '''
         
         # Step 2: Seasons
+        # print(f"Step 2: Seasons")
+        
         cursor.execute("""
             SELECT MIN(Date), MAX(Date) FROM stg_premier_league_raw 
             WHERE FileHash = %s
@@ -164,6 +147,8 @@ def trigger_etl_job(file_hash):
             summary.append(f"Season '{season_name}' inserted or already present.")
     
         # Step 3: Referees
+        # print(f"Step 3: Referees")
+        
         cursor.execute("""
             SELECT DISTINCT Referee
             FROM stg_premier_league_raw
@@ -179,6 +164,8 @@ def trigger_etl_job(file_hash):
         summary.append(f"{len(ref_data)} referees processed.")
 
         # Step 4: Divisions
+        # print(f"Step 4: Divisions")
+        
         cursor.execute("""
             SELECT DISTINCT `Div`
             FROM stg_premier_league_raw
@@ -194,6 +181,8 @@ def trigger_etl_job(file_hash):
         summary.append(f"{len(div_data)} divisions processed.")
 
         # Step 5: Matches
+        # print(f"Step 5: Matches")
+        
         cursor.execute("""
             SELECT Date, Time, `Div`, HomeTeam, AwayTeam, FTHG, FTAG, FTR,
                    HTHG, HTAG, HTR, Referee
@@ -249,7 +238,9 @@ def trigger_etl_job(file_hash):
         conn.commit()
         summary.append(f"{len(match_data)} matches inserted.")
 
-        # Step 6: MatchStatistics
+        # Step 6: Match Statistics
+        # print(f"Step 6: Match Statistics")
+        
         cursor.execute("""
             SELECT Date, Time, HomeTeam, AwayTeam,
                    HS, `AS`, HST, AST, HC, AC, HF, AF, HY, AY, HR, AR
@@ -296,7 +287,9 @@ def trigger_etl_job(file_hash):
         conn.commit()
         summary.append(f"{len(stat_data)} match statistics inserted.")
 
-        # Step 7: Log ETL success
+        # Step 7: Log ETL
+        # print(f"Step 7: Log ETL")
+        
         end_time = datetime.now()
         cursor.execute("""
             UPDATE ETLLog
@@ -308,7 +301,9 @@ def trigger_etl_job(file_hash):
         """, (end_time, len(match_data), "Completed", log_id))
         conn.commit()
 
-        # Step 8: insert Market definitions
+        # Step 8: Market definitions
+        # print(f"Step 8: Market definitions")
+        
         insert_market_sql = """
             INSERT IGNORE INTO Markets (MarketType, MarketSubtype, Parameter, Description)
             VALUES (%s, %s, %s, %s)
@@ -327,7 +322,9 @@ def trigger_etl_job(file_hash):
             "Pinnacle Sports": ("P_2_5O", "P_2_5U")
         }
                 
-        # Step 9: Insert Bookmakers and fetch IDs
+        # Step 9: Bookmakers
+        # print(f"Step 9: Bookmakers")
+        
         bookmaker_map = {
             "Bet365": ("B365H", "B365D", "B365A"),
             "Bet&Win": ("BWH", "BWD", "BWA"),
@@ -358,7 +355,9 @@ def trigger_etl_job(file_hash):
                 raise RuntimeError(f"Bookmaker '{name}' not found.")
             bookmaker_ids[name] = row[0]
 
-        # Step 10: Get MarketID for 1X2 FullTime
+        # Step 10: Market 1X2 FullTime
+        # print(f"Step 10: Market 1X2 FullTime")
+         
         cursor.execute("""
             SELECT MarketID FROM Markets
             WHERE MarketType = %s AND MarketSubtype = %s AND Parameter = %s
@@ -369,7 +368,9 @@ def trigger_etl_job(file_hash):
             raise RuntimeError("Market '1X2 / FullTime' not found in Markets table.")
         market_id = row[0]
 
-        # Step 11: Insert BettingOdds
+        # Step 11: BettingOdds
+        # print(f"Step 11: BettingOdds")
+        
         cursor.execute("""
             SELECT MatchID, B365H, B365D, B365A, BWH, BWD, BWA, IWH, IWD, IWA, PSH, PSD, PSA
             FROM Matches m
@@ -405,8 +406,9 @@ def trigger_etl_job(file_hash):
         conn.commit()
         summary.append(f"{len(odds_data)} 1X2 odds inserted.")
 
-        # Step 12: Insert Over/Under 2.5 odds
-        # Get MarketID for Over/Under 2.5
+        # Step 12: Over/Under 2.5 odds
+        # print(f"Step 12: Over/Under 2.5 odds")
+        
         cursor.execute("""
             SELECT MarketID FROM Markets
             WHERE MarketType = %s AND MarketSubtype = %s AND Parameter = %s
@@ -416,7 +418,9 @@ def trigger_etl_job(file_hash):
             raise RuntimeError("Over/Under 2.5 market not found in Markets table.")
         ou_market_id = row[0]
 
-        # Build SELECT dynamically
+        # Step 13: Build SELECT dynamically
+        # print(f"Step 13: Build SELECT dynamically")
+        
         all_columns = ["MatchID"]
         for pair in ou_map.values():
             all_columns.extend(pair)

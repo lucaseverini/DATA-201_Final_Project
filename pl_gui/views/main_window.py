@@ -29,6 +29,8 @@ import sys
 import subprocess
 from datetime import datetime
 
+DISABLE_LOGIN = False
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -44,12 +46,17 @@ class MainWindow(QMainWindow):
         self.current_widget = None
         
         # Login
-        login_dialog = LoginDialog()
-        if login_dialog.exec_() != QDialog.Accepted:
-            sys.exit(1)
+        if DISABLE_LOGIN:
+            print("Login disabled. User is Admin")
+            self.username = 'Admin'
+            self.role = 'admin'
+        else:
+            login_dialog = LoginDialog()
+            if login_dialog.exec_() != QDialog.Accepted:
+                sys.exit(1)
         
-        self.username = login_dialog.username
-        self.role = login_dialog.role
+            self.username = login_dialog.username
+            self.role = login_dialog.role
         
         # Info menu
         self.info_menu = self.menu.addMenu("Info")
